@@ -15,25 +15,12 @@ reaction = false
 
 ## About Me
 
-Hi there! I'm Tymek, a developer passionate about building things on the web.
+Hey! I'm Tymek, a systems engineer with a strong background in systems engineering, cryptography and P2P networking.
 
-This is my personal corner of the internet where I share my thoughts, projects, and learnings. I believe in open source, continuous learning, and the power of sharing knowledge.
+I've previously been interested in cybersecurity, linux ricing, DevOps, and now systems engineering. I'm particularly interested in developing decentralized systems and solving scaling problems.
 
-### What I Do
-
-- Web development
-- Open source contributions
-- Writing about technology
-- Exploring new tools and frameworks
+When I'm not coding, you'll find me rock climbing, hiking, or cooking.
 
 ### Experience
 
 {{ collection(file="experience.toml") }}
-
-### Find Me Online
-
-- **Bluesky**: [@tymek.me](https://bsky.app/profile/tymek.me)
-- **GitHub**: [timcki](https://github.com/timcki)
-- **Codeberg**: [tymek](https://codeberg.org/tymek)
-
-Feel free to reach out if you'd like to connect or collaborate on something interesting!
