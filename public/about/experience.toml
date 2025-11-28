@@ -1,0 +1,13 @@
+[[collection]]
+type = "entry"
+icon = "/img/tokentax.svg"
+title = "TokenTax"
+subtitle = "Systems Engineer • September 2021 - Present"
+link = "https://tokentax.co"
+
+[[collection]]
+type = "entry"
+icon = "https://www.hidglobal.com/favicon.ico"
+title = "HID Global"
+subtitle = "Backend and DevOps Engineer • June 2019 - September 2021"
+link = "https://www.hidglobal.com"

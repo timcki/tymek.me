@@ -26,6 +26,10 @@ This is my personal corner of the internet where I share my thoughts, projects, 
 - Writing about technology
 - Exploring new tools and frameworks
 
+### Experience
+
+{{ collection(file="experience.toml") }}
+
 ### Find Me Online
 
 - **Bluesky**: [@tymek.me](https://bsky.app/profile/tymek.me)
