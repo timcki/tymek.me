@@ -10,7 +10,7 @@ footer = false
 # Personal info
 name = "Tymek"
 id = "tymek.me"
-bio = "Developer passionate about building things on the web"
+bio = "Interested in decentralized systems and solving scaling problems"
 avatar = ""
 links = [
     { name = "Bluesky", icon = "bluesky", url = "https://bsky.app/profile/tymek.me" },

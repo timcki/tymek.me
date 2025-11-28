@@ -19,7 +19,7 @@ Hey! I'm Tymek, a systems engineer with a strong background in systems engineeri
 
 I've previously been interested in cybersecurity, linux ricing, DevOps, and now systems engineering. I'm particularly interested in developing decentralized systems and solving scaling problems.
 
-When I'm not coding, you'll find me rock climbing, hiking, or cooking.
+Apart from computers, I'm into rock climbing, hiking, and cooking.
 
 ### Experience
 
