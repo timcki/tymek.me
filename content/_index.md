@@ -9,7 +9,7 @@ footer = false
 
 # Personal info
 name = "Tymek"
-id = "@tymek.me"
+id = "tymek.me"
 bio = "Developer passionate about building things on the web"
 avatar = ""
 links = [

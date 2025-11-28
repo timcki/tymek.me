@@ -1,0 +1,15 @@
+[[collection]]
+type = "card"
+title = "Example Project 1"
+link = "https://github.com/timcki/example-project"
+content = "A cool project that does something interesting. Replace this with your actual project descriptions."
+tags = ["rust", "web", "open-source"]
+featured = false
+
+[[collection]]
+type = "card"
+title = "Example Project 2"
+link = "https://codeberg.org/tymek/another-project"
+content = "Another interesting project. You can add as many projects as you want here."
+tags = ["typescript", "cli"]
+featured = false
