@@ -1,10 +1,7 @@
 :2015 {
-    root * _site
+    root * public
     file_server
     encode gzip
-
-    # Pretty URLs - serve /about instead of /about.html
-    try_files {path}.html {path}
 
     # Handle errors gracefully
     handle_errors {

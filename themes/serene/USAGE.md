@@ -38,8 +38,9 @@ bio = "dog person, killer"
 avatar = "img/avatar.webp"
 links = [
     { name = "GitHub", icon = "github", url = "https://github.com/<your-username>" },
-    { name = "Twitter", icon = "twitter", url = "https://twitter.com/<your-username>" },
     { name = "Email", icon = "email", url = "mailto:<your-email-address>" },
+    { name = "Twitter", icon = "twitter", url = "https://twitter.com/<your-username>" },
+    { name = "Mastodon", icon = "mastodon", url = "https://mastodon.social/<your-username>", rel_me = true },
 ]
 
 # Show a few recent posts in home page
@@ -112,7 +113,7 @@ Hi, My name is ....
 
 The default date format is "%b %-d, %Y", e.g. "Dec 13, 2025", check [this page](https://docs.rs/chrono/0.4.40/chrono/format/strftime/index.html) if you want to customize it, for example change to "%Y-%-m-%-d", e.g. "2025-2-13".
 
-Now the myblog directory may looks like this:
+Now the myblog directory may look like this:
 
 ```
 ├── config.toml
@@ -160,14 +161,6 @@ The default icons mostly came from [Remix Icon](https://remixicon.com/).
 
 By default there is theme toggle button to switch between light and dark mode, you can set `force_theme` in `config.toml` to force a specific mode only.
 
-## Code Highlighting
-
-By default serene use different code highlight themes for light/dark mode, configured by `highlight_theme`, `extra_syntaxes_and_themes` and `highlight_themes_css`. The default highlight theme `serene-light` `serene-dark` is a modified version of [Tomorrow](https://github.com/ChrisKempson/Tomorrow-Theme) theme.
-
-If you set `highlight_theme` in `config.toml` to one of zola's [built-in highlight themes](https://www.getzola.org/documentation/getting-started/configuration/#syntax-highlighting), you will get that theme used in both light and dark mode.
-
-If you want a different theme, create `myblog/highlight_themes`, set `extra_syntaxes_and_themes` to `["highlight_themes"]`, find the `.tmTheme` TextMate file of your theme, put it there, and then modify the `theme` value of `highlight_themes_css` to that file's name. This will generate a `hl-light.css` and a `hl-dark.css` file in `myblog/static/`, you may have to delete them first before you change the `theme` value, so zola can re-generate. You can find some TextMate themes on [this website](https://tmtheme-editor.glitch.me/).
-
 ## RSS
 
 Zola's default feed file is located in the root directory of the site, set `generate_feeds = true` in `config.toml`, `feed_filenames` can be set to `["atom.xml"]` or `["rss.xml"] ` , corresponding to two different rss file standards, you should also set `generate_feeds = false` in `myblog/content/posts/_index.md`
@@ -175,6 +168,18 @@ Zola's default feed file is located in the root directory of the site, set `gene
 The serene theme looks more like a personal website, the posts are in the `/posts` directory, you may want the feed file to be in the `/posts` directory instead of the root directory, this requires you to set `generate_feeds = false ` `feed_filenames = ["feed.xml"]` in `config.toml`, and set `generate_feeds = true` in `myblog/content/posts/_index.md`.
 
 `feed.xml` uses `title` and `description` from `myblog/content/posts/_index.md`, the other two use `config.toml`'s.
+
+## Open Graph
+
+Each page has [Open Graph](https://ogp.me/) and Twitter Card meta tags (plus a canonical link), so links shared to social media and chat apps can show a rich preview card with title, description and image.
+
+Title and description come from the same sources as the page's `<title>` and meta description. The preview image is resolved as follows:
+
+- Post pages use `og_image` in the `[extra]` section of front matter, if set. It can be a full URL, a path in the `static` folder (starting with `/`), or the filename of a [colocated asset](https://www.getzola.org/documentation/content/overview/#asset-colocation) of the post.
+- Otherwise, the site-wide default `og_image` in the `[extra]` section of `config.toml` is used, if set. It can be a full URL or a path in the `static` folder, e.g. `og_image = "img/og.png"`.
+- If neither is set, image related tags are omitted.
+
+An image around 1200x630 is recommended for the best display on most platforms.
 
 ## Analytics
 
@@ -186,7 +191,7 @@ Copy `myblog/themes/serene/templates/_custom_css.html` to `myblog/templates/_cus
 
 If you want to customize more, you need to copy that file under the `templates`, `static`, `sass` directory in the corresponding `themes/serene` to the same name directory of `myblog`, and modify it. Be careful not to directly modify the files under the serene directory, because these modifications may cause conflicts if the theme is updated.
 
-If you want to use a custom font, create a new `myblog/templates/_custom_font.html` and put the font link tags (for eample, from [google fonts](https://fonts.google.com/)) into it, and then modify `--main-font` or `--code-font` in `myblog/sass/templates/_custom_css.html`. For performance reason, you may want to self-host font files, but it's optional:
+If you want to use a custom font, create a new `myblog/templates/_custom_font.html` and put the font link tags (for example, from [google fonts](https://fonts.google.com/)) into it, and then modify `--main-font` or `--code-font` in `myblog/sass/templates/_custom_css.html`. For performance reasons, you may want to self-host font files, but it's optional:
 
 1. Open [google-webfonts-helper](https://gwfh.mranftl.com) and choose your font.
 2. Modify `Customize folder prefix` of step 3 to `/font/` and then copy the css.
@@ -220,6 +225,7 @@ math = false
 mermaid = false
 featured = false
 reaction = false
+og_image = "cover.png"
 +++
 
 new post about something...
@@ -300,7 +306,7 @@ You need to setup a backend api endpoint to enable it. Your endpoint should hand
     }
     ```
 
-For conivence, you can use one template repo to to setup your own endpoint:
+For conivence, you can use one template repo to setup your own endpoint:
 
 -  [isunjn/reaction](https://github.com/isunjn/reaction): All you need is a [Cloudflare](https://cloudflare.com) account. The free tier is good enough for a low-traffic personal blog.
 
@@ -355,6 +361,8 @@ Zola supports some [annotations for code blocks](https://www.getzola.org/documen
   {% end %}
   ```
 
+  ***Update: [github callout/alert syntax](https://github.com/orgs/community/discussions/16925) is supported since zola v0.21 (however it doesn't display icon and title), the callout shortcodes will be deprecated in this theme's next major release***
+
 - Use `mermaid` to add a mermaid chart:
 
   ```md
@@ -365,6 +373,12 @@ Zola supports some [annotations for code blocks](https://www.getzola.org/documen
   C -->|One| D[Result 1]
   C -->|Two| E[Result 2]
   {% end %}
+  ```
+
+- Use `youtube` to embed a youtube video, `autoplay` is optional, default to `false`:
+
+  ```md
+  {{ youtube(id="<youtube-video-id>", autoplay=true) }}
   ```
 
 ## Collection
@@ -379,11 +393,11 @@ Currently, there are 7 types of collection item:
     [[collection]]
     type = "card"
     title = "Title"
-    subtitle = "Subtitle" # optional
+    subtitle = "Subtitle" # optional; supports Markdown
     date = "Date" # optional
     link = "https://example.com" # optional
     icon = "https://example.com/image.png" # optional
-    content = "Content"
+    content = "Content" # supports Markdown
     tags = ["tag1", "tag2"] # optional
     featured = false  # optional
     ```
@@ -397,7 +411,7 @@ Currently, there are 7 types of collection item:
     date = "Date" # optional
     link = "https://example.com" # optional
     icon = "https://example.com/image.png" # optional
-    content = "Content"
+    content = "Content" # supports Markdown
     featured = false  # optional
     ```
 
@@ -429,11 +443,11 @@ Currently, there are 7 types of collection item:
     [[collection]]
     type = "art"
     title = "Title"
-    subtitle = "Subtitle" # optional
+    subtitle = "Subtitle" # optional; support Markdown
     link = "https://example.com" # optional
     img = "https://example.com/image.png"
-    content = "Content" # optional
-    footer = "Footer" # optional
+    content = "Content" # optional; supports Markdown
+    footer = "Footer" # optional; supports Markdown
     ```
 
 - `art_simple`
@@ -442,7 +456,7 @@ Currently, there are 7 types of collection item:
     [[collection]]
     type = "art_simple"
     title = "Title"
-    subtitle = "Subtitle" # optional
+    subtitle = "Subtitle" # optional; supports Markdown
     link = "https://example.com" # optional
     img = "https://example.com/image.png"
     ```

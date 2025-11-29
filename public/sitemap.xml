@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://tymek.me/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/about/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/categories/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/posts/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/posts/setting-up-rocketpool-validator/</loc>
+        <lastmod>2025-11-28</lastmod>
+    </url>
+    <url>
+        <loc>https://tymek.me/projects/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/tags/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/tags/blockchain/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/tags/ethereum/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/tags/rocketpool/</loc>
+    </url>
+    <url>
+        <loc>https://tymek.me/tags/validator/</loc>
+    </url>
+</urlset>
