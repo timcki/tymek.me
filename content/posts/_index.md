@@ -11,7 +11,7 @@ generate_feeds = true
 lang = "en"
 
 title = "Posts"
-subtitle = "Thoughts on web development, tools, and technology"
+subtitle = ""
 
 date_format = "%b %-d, %Y"
 
