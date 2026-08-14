@@ -15,7 +15,7 @@ avatar = ""
 links = [
     { name = "Bluesky", icon = "bluesky", url = "https://bsky.app/profile/tymek.me" },
     { name = "GitHub", icon = "github", url = "https://github.com/timcki" },
-    { name = "Codeberg", icon = "codeberg", url = "https://codeberg.org/tymek" },
+    { name = "Tangled", icon = "tangled", url = "https://tangled.org/tymek.me" },
 ]
 
 # Show a few recent posts in home page
