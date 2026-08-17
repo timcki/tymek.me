@@ -45,6 +45,10 @@
     'uniform float u_intensity;',
     'uniform vec2 u_pointer;',
     'uniform float u_pstrength;',
+    '// xy: position in uv, z: age 0..1, w: fading strength',
+    'uniform vec4 u_drops[8];',
+    '// persistent ink stain layer, written by the sim pass each frame',
+    'uniform sampler2D u_ink;',
     '',
     '// ashima 2d simplex noise',
     'vec3 permute(vec3 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }',
@@ -107,6 +111,22 @@
     '  // stir the noise domain around the cursor so colors swirl in its wake',
     '  p += vec2(-pv.y, pv.x) * infl * 0.5;',
     '',
+    '  // ink drops: tapped splashes spread outward and dissolve. each is a',
+    '  // soft disc plus a traveling rim that also pushes the field radially',
+    '  float ink = 0.0;',
+    '  for (int i = 0; i < 8; i++) {',
+    '    vec4 d = u_drops[i];',
+    '    if (d.w < 0.001) continue;',
+    '    vec2 dv = (uv - d.xy) * aspect;',
+    '    float dist = length(dv);',
+    '    float radius = 0.04 + 0.38 * sqrt(d.z);',
+    '    float rd = (dist - radius) * 14.0;',
+    '    float rim = exp(-rd * rd);',
+    '    float disc = smoothstep(radius, radius * 0.25, dist);',
+    '    ink += d.w * (0.5 * disc + 0.7 * rim);',
+    '    p += normalize(dv + vec2(1e-4)) * rim * d.w * 0.06;',
+    '  }',
+    '',
     '  // gentle in-place swirl: radial phase wobble so the field churns',
     '  // instead of only drifting sideways',
     '  p += 0.05 * sin(vec2(0.29, 0.23) * u_time * 0.06 + length(p) * vec2(3.3, 4.1));',
@@ -134,6 +154,15 @@
     '  vec3 accent = (u_c1 * w1 + u_c2 * w2 + u_c3 * w3 + u_c4 * w4 + u_c5 * w5)',
     '              / max(w1 + w2 + w3 + w4 + w5, 1e-4);',
     '',
+    '  // tapped ink stains override the ambient hue where they sit. rgb is',
+    '  // premultiplied by density in the sim, so un-premultiply to composite',
+    '  vec4 inkT = texture2D(u_ink, uv);',
+    '  // gate on density: at near-zero alpha the un-premultiply amplifies',
+    '  // byte quantization into a white halo around the stain edge',
+    '  float dens = smoothstep(0.03, 0.3, inkT.a);',
+    '  vec3 inkCol = clamp(inkT.rgb / max(inkT.a, 1e-3), 0.0, 1.0);',
+    '  accent = mix(accent, inkCol, dens * 0.5);',
+    '',
     '  float sheen = 0.5;',
     '#ifdef HAS_DERIV',
     '  // pseudo-lighting from the field gradient gives the smoke a silk sheen;',
@@ -147,7 +176,7 @@
     '  float amt = u_intensity * (0.55 + 0.45 * f);',
     '  amt *= mix(0.5, 1.0, edge);',
     '  // color blooms under the cursor, even inside the calm center zone',
-    '  amt = min(amt + infl * 0.05, 0.6);',
+    '  amt = min(amt + infl * 0.05 + ink * 0.15 + dens * 0.2, 0.65);',
     '',
     '  // dark bg: plain mix. light bg: multiply a normalized "ink" tint over',
     '  // the paper white, which keeps saturation instead of greying midway.',
@@ -165,6 +194,57 @@
     '  // slight grain hides banding in the smooth gradients',
     '  float grain = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0;',
     '  gl_FragColor = vec4(col + grain * 1.5, 1.0);',
+    '}',
+  ].join('\n');
+
+  // sim pass for the persistent ink layer: advect along a cheap noise flow,
+  // blur a little, decay, then splat any new taps as premultiplied color
+  var SIMFRAG = [
+    'precision mediump float;',
+    'uniform sampler2D u_prev;',
+    'uniform vec2 u_simres;',
+    'uniform float u_dt;',
+    'uniform float u_time;',
+    'uniform vec2 u_aspect;',
+    '// xy: pos in uv, z: radius, w: amount (zero when slot inactive)',
+    'uniform vec4 u_splat[8];',
+    'uniform vec3 u_splatcol[8];',
+    '',
+    'float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float vnoise(vec2 p) {',
+    '  vec2 i = floor(p);',
+    '  vec2 f = fract(p);',
+    '  f = f * f * (3.0 - 2.0 * f);',
+    '  float a = mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x);',
+    '  float b = mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x);',
+    '  return mix(a, b, f.y) * 2.0 - 1.0;',
+    '}',
+    '',
+    'void main() {',
+    '  vec2 uv = gl_FragCoord.xy / u_simres;',
+    '  // gentle noise flow drags the ink into tendrils over time',
+    '  vec2 pp = uv * u_aspect * 2.0;',
+    '  vec2 vel = vec2(vnoise(pp + u_time * 0.03),',
+    '                  vnoise(pp + vec2(4.7, 2.9) - u_time * 0.02));',
+    '  vec4 col = texture2D(u_prev, uv - vel * 0.035 * u_dt);',
+    '  // mild diffusion softens edges as the ink spreads',
+    '  vec2 px = 1.0 / u_simres;',
+    '  col = col * 0.6 + 0.1 * (',
+    '    texture2D(u_prev, uv + vec2(px.x, 0.0)) + texture2D(u_prev, uv - vec2(px.x, 0.0)) +',
+    '    texture2D(u_prev, uv + vec2(0.0, px.y)) + texture2D(u_prev, uv - vec2(0.0, px.y)));',
+    '  // multiplicative fade plus a small linear cut so byte textures',
+    '  // actually reach zero instead of ghosting forever',
+    '  col *= 0.988;',
+    '  col = max(col - 0.0015, 0.0);',
+    '  for (int i = 0; i < 8; i++) {',
+    '    vec4 s = u_splat[i];',
+    '    if (s.w < 0.001) continue;',
+    '    vec2 dv = (uv - s.xy) * u_aspect;',
+    '    float g = s.w * exp(-dot(dv, dv) / (s.z * s.z));',
+    '    col.rgb += u_splatcol[i] * g;',
+    '    col.a += g;',
+    '  }',
+    '  gl_FragColor = clamp(col, 0.0, 1.0);',
     '}',
   ].join('\n');
 
@@ -220,7 +300,68 @@
       intensity: gl.getUniformLocation(prog, 'u_intensity'),
       pointer: gl.getUniformLocation(prog, 'u_pointer'),
       pstrength: gl.getUniformLocation(prog, 'u_pstrength'),
+      drops: gl.getUniformLocation(prog, 'u_drops'),
+      ink: gl.getUniformLocation(prog, 'u_ink'),
     };
+    gl.uniform1i(u.ink, 0);
+
+    // fallback 1x1 transparent texture: an unbound sampler reads alpha 1,
+    // which would flood the page with ink if the sim failed to init
+    var blankInk = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, blankInk);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+      new Uint8Array([0, 0, 0, 0]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    // ink layer: two ping-pong framebuffers; each frame reads one, writes the
+    // other. fixed low res is plenty since the ink is soft by nature
+    var SIM_RES = 256;
+    var simProg = null;
+    var simU = null;
+    var inkTex = [];
+    var inkFbo = [];
+    var inkRead = 0;
+    var pendingSplats = [];
+    var splatData = new Float32Array(32);
+    var splatColData = new Float32Array(24);
+    (function initInk() {
+      var sfs = compile(gl, gl.FRAGMENT_SHADER, SIMFRAG);
+      if (!sfs) return;
+      var p2 = gl.createProgram();
+      gl.attachShader(p2, vs);
+      gl.attachShader(p2, sfs);
+      gl.linkProgram(p2);
+      if (!gl.getProgramParameter(p2, gl.LINK_STATUS)) return;
+      for (var i = 0; i < 2; i++) {
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, SIM_RES, SIM_RES, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        inkTex.push(tex);
+        inkFbo.push(fbo);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      var aloc = gl.getAttribLocation(p2, 'a_pos');
+      gl.enableVertexAttribArray(aloc);
+      gl.vertexAttribPointer(aloc, 2, gl.FLOAT, false, 0, 0);
+      simProg = p2;
+      simU = {
+        prev: gl.getUniformLocation(p2, 'u_prev'),
+        simres: gl.getUniformLocation(p2, 'u_simres'),
+        dt: gl.getUniformLocation(p2, 'u_dt'),
+        time: gl.getUniformLocation(p2, 'u_time'),
+        aspect: gl.getUniformLocation(p2, 'u_aspect'),
+        splat: gl.getUniformLocation(p2, 'u_splat'),
+        splatcol: gl.getUniformLocation(p2, 'u_splatcol'),
+      };
+    })();
 
     document.body.prepend(canvas);
     document.body.classList.add('has-bg-canvas');
@@ -233,13 +374,15 @@
       document.body.classList.add('has-runway');
       if (window.scrollY < RUNWAY) window.scrollTo(0, RUNWAY);
       if (document.body.classList.contains('homepage')) {
-        // the homepage fits one screen, so block panning entirely; the pinned
-        // scrollY=160 from the runway survives, which is all safari needs to
-        // keep its chrome translucent
+        // the homepage fits one screen, so block panning entirely. the settle
+        // logic below still runs here: ios can move scroll without a gesture
+        // (status bar tap-to-top, rotation, scroll restoration), and without
+        // re-pinning, scrollY=0 would flatten the chrome permanently
         document.addEventListener('touchmove', function (e) {
           if (e.touches.length === 1) e.preventDefault();
         }, { passive: false });
-      } else {
+      }
+      {
         // never fight the compositor mid-gesture: ios scroll events are async
         // and stale, so corrections during momentum cause jitter. native
         // scrolling (including its rubber band) runs free; only once scrolling
@@ -365,15 +508,38 @@
     // pointer state: x/y trail behind the real cursor, kick spikes on movement
     // and decays, so fast strokes stir harder than a resting hover
     var pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, s: 0, kick: 0, active: false };
+    // client coords must map through the canvas geometry, not the window:
+    // the canvas bleeds 100px above the viewport (top: -100px in css) and
+    // 160px below, so window-relative mapping drifts low toward the bottom
+    var BLEED_TOP = 100;
+    function toUvX(clientX) { return clientX / canvas.clientWidth; }
+    function toUvY(clientY) { return 1 - (clientY + BLEED_TOP) / canvas.clientHeight; }
     window.addEventListener('pointermove', function (e) {
-      pointer.tx = e.clientX / window.innerWidth;
-      pointer.ty = 1 - e.clientY / window.innerHeight; // gl has y up
+      pointer.tx = toUvX(e.clientX);
+      pointer.ty = toUvY(e.clientY); // gl has y up
       pointer.kick = 1;
       pointer.active = true;
     }, { passive: true });
     document.documentElement.addEventListener('pointerleave', function () {
       pointer.active = false;
     });
+
+    // ink drops: a tap or click splashes a spreading, dissolving drop
+    var DROP_LIFE = 3500;
+    var drops = [];
+    var dropData = new Float32Array(32);
+    var dropHue = 0;
+    window.addEventListener('pointerdown', function (e) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var ux = toUvX(e.clientX);
+      var uy = toUvY(e.clientY);
+      if (drops.length >= 8) drops.shift();
+      drops.push({ x: ux, y: uy, t0: performance.now() });
+      // stain color cycles through the current palette, one hue per tap
+      var cols = [cur.c1, cur.c2, cur.c3, cur.c4, cur.c5];
+      var c = cols[dropHue++ % 5];
+      if (pendingSplats.length < 8) pendingSplats.push({ x: ux, y: uy, color: [c[0], c[1], c[2]] });
+    }, { passive: true });
 
     function ease(a, b, k) {
       var settled = true;
@@ -420,6 +586,42 @@
       needsRender = false;
 
       var t = reducedMotion.matches ? 0 : (now - start) / 1000;
+
+      // ink sim pass: advect and decay the stain layer, splat new taps
+      if (simProg) {
+        gl.useProgram(simProg);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, inkFbo[1 - inkRead]);
+        gl.viewport(0, 0, SIM_RES, SIM_RES);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, inkTex[inkRead]);
+        gl.uniform1i(simU.prev, 0);
+        gl.uniform2f(simU.simres, SIM_RES, SIM_RES);
+        gl.uniform1f(simU.dt, dt);
+        gl.uniform1f(simU.time, (now - start) / 1000);
+        gl.uniform2f(simU.aspect, canvas.width / canvas.height, 1);
+        splatData.fill(0);
+        splatColData.fill(0);
+        for (var si = 0; si < pendingSplats.length; si++) {
+          var sp = pendingSplats[si];
+          splatData[si * 4] = sp.x;
+          splatData[si * 4 + 1] = sp.y;
+          splatData[si * 4 + 2] = 0.07;
+          splatData[si * 4 + 3] = 0.35;
+          splatColData[si * 3] = sp.color[0];
+          splatColData[si * 3 + 1] = sp.color[1];
+          splatColData[si * 3 + 2] = sp.color[2];
+        }
+        pendingSplats.length = 0;
+        gl.uniform4fv(simU.splat, splatData);
+        gl.uniform3fv(simU.splatcol, splatColData);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        inkRead = 1 - inkRead;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.useProgram(prog);
+        gl.bindTexture(gl.TEXTURE_2D, inkTex[inkRead]);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+
       gl.uniform2f(u.res, canvas.width, canvas.height);
       gl.uniform1f(u.time, t);
       gl.uniform3fv(u.bg, cur.bg);
@@ -431,6 +633,18 @@
       gl.uniform1f(u.intensity, cur.intensity);
       gl.uniform2f(u.pointer, pointer.x, pointer.y);
       gl.uniform1f(u.pstrength, pointer.s);
+      for (var di = drops.length - 1; di >= 0; di--) {
+        if (now - drops[di].t0 > DROP_LIFE) drops.splice(di, 1);
+      }
+      dropData.fill(0);
+      for (var dj = 0; dj < drops.length; dj++) {
+        var age = (now - drops[dj].t0) / DROP_LIFE;
+        dropData[dj * 4] = drops[dj].x;
+        dropData[dj * 4 + 1] = drops[dj].y;
+        dropData[dj * 4 + 2] = age;
+        dropData[dj * 4 + 3] = Math.pow(1 - age, 1.6);
+      }
+      gl.uniform4fv(u.drops, dropData);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       sampleToolbarTint();
     }
