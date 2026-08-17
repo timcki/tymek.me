@@ -495,6 +495,19 @@
           animating = false;
         }, { passive: true });
 
+        // back-nav restores (bfcache) can land outside the content zone
+        // because the toolbar state changed while away, and a settle frozen
+        // mid-animation can even resume. clamp instantly on pageshow so
+        // nothing visibly scrolls after the page appears
+        window.addEventListener('pageshow', function () {
+          cancelAnimationFrame(settleAnim);
+          animating = false;
+          var b = bounds();
+          var y = window.scrollY;
+          if (y < b.lo) window.scrollTo(0, b.lo);
+          else if (y > b.hi) window.scrollTo(0, b.hi);
+        });
+
         onScrollSettled();
       }
     }
