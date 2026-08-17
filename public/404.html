@@ -331,6 +331,31 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* justified body text; auto hyphenation keeps the rivers in check */
+  body .prose p {
+    text-align: justify;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* breathing room so the sticky toc card doesn't kiss the browser chrome */
+  html body.post aside {
+    top: 1.5rem;
+  }
+
+  /* the post table of contents becomes a compact glass card instead of the
+     theme's full-width slab of solid bg-color scroll-fade gradients */
+  html body.post aside nav {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 1em 1.2em;
+    min-width: 0;
+    max-width: 15em;
+  }
+
   /* no bounce past the absolute document edges on mobile: parking at exact
      scrollY 0/max flips safari's chrome to a flat tint. the runway settle
      in bg-shader.js provides the rubber-band feel instead */

@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="
-
-en">
+<html lang="en">
 
 <head>
   <meta charset="utf-8">
@@ -10,23 +8,33 @@ en">
        safe areas behind ios safari's status bar and toolbar -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="rocketpool">
-<link rel="canonical" href="https://tymek.me/tags/rocketpool/">
+  
+    
+  <meta name="description" content="Adding a liquid, tiltable, tappable WebGL background, and fighting Safari to get it to look exactly how I wanted">
+<link rel="canonical" href="https://tymek.me/posts/this-website-is-a-shader-now/">
 <meta property="og:site_name" content="Tymek&#x27;s page">
-<meta property="og:type" content="website">
-<meta property="og:title" content="My Blog">
-<meta property="og:description" content="rocketpool">
-<meta property="og:url" content="https://tymek.me/tags/rocketpool/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Making my website less boring">
+<meta property="og:description" content="Adding a liquid, tiltable, tappable WebGL background, and fighting Safari to get it to look exactly how I wanted">
+<meta property="og:url" content="https://tymek.me/posts/this-website-is-a-shader-now/">
 <meta property="og:locale" content="en">
 
 
+<meta property="article:published_time" content="2026-08-17">
+
+<meta property="article:tag" content="webgl">
+<meta property="article:tag" content="shaders">
+<meta property="article:tag" content="css">
+<meta property="article:tag" content="safari">
+
+
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="My Blog">
-<meta name="twitter:description" content="rocketpool">
+<meta name="twitter:title" content="Making my website less boring">
+<meta name="twitter:description" content="Adding a liquid, tiltable, tappable WebGL background, and fighting Safari to get it to look exactly how I wanted">
 
 
 
-  <title>My Blog</title>
+  <title>Making my website less boring</title>
   <link rel="icon" type="image/png" sizes="32x32" href="https://tymek.me/img/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="https://tymek.me/img/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://tymek.me/img/apple-touch-icon.png">
@@ -386,12 +394,17 @@ en">
 
   <link rel="stylesheet" href="https://tymek.me/main.css">
   
+
+<link id="hl" rel="stylesheet" type="text/css" href="/giallo-light.css" />
+
+
+
   <script defer src="https://tymek.me/js/bg-shader.js"></script>
 <script defer src="https://tymek.me/js/ui.js"></script>
 
 </head>
 
-<body class="tag-single">
+<body class="post">
   <script>
     // pre-scroll past the runway before first paint: the deferred shader
     // script runs too late, and view transitions animate over the early
@@ -418,27 +431,166 @@ en">
   
   
 <div id="wrapper">
-  
+  <div id="blank"></div>
+  <aside>
+    
+    
+    <nav>
+      <ul>
+        
+        <li>
+          <a class="h2" href="#the-field">The field</a>
+          
+        </li>
+        
+        <li>
+          <a class="h2" href="#the-palette">The palette</a>
+          
+        </li>
+        
+        <li>
+          <a class="h2" href="#two-color-models">Two color models</a>
+          
+        </li>
+        
+        <li>
+          <a class="h2" href="#making-it-interactive">Making it interactive</a>
+          
+        </li>
+        
+        <li>
+          <a class="h2" href="#fighting-safari">Fighting Safari</a>
+          
+          <ul>
+            
+            <li>
+              <a class="h3" href="#liquid-glass">Liquid glass</a>
+            </li>
+            
+            <li>
+              <a class="h3" href="#performance">Performance</a>
+            </li>
+            
+          </ul>
+          
+        </li>
+        
+      </ul>
+    </nav>
+    
+    
+    <button id="back-to-top" aria-label="back to top">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-up"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+
+    </button>
+    
+  </aside>
+  <main>
+    
 <header>
   <nav>
-    <a id="back-link" href="https:&#x2F;&#x2F;tymek.me&#x2F;tags">← Back</a>
+    <a id="back-link" href="https:&#x2F;&#x2F;tymek.me&#x2F;posts">← Back</a>
   </nav>
 </header>
 
-  <main class="layout-list">
-    <div class="title">
-      <span># rocketpool</span>
-    </div>
-    <div class="post-list">
+
+    <div>
       
-      <a class="post instant " href="https:&#x2F;&#x2F;tymek.me&#x2F;posts&#x2F;setting-up-rocketpool-validator&#x2F;">
-        <span>Setting up a Rocketpool validator node</span>
-        <span class="date">Nov 28, 2025</span>
-      </a>
+      
+      
+      
+      <div id="copy-cfg" style="display: none;" data-copy-icon="&lt;svg xmlns=&quot;http:&#x2F;&#x2F;www.w3.org&#x2F;2000&#x2F;svg&quot; viewBox=&quot;0 0 24 24&quot; width=&quot;18&quot; height=&quot;18&quot;&gt;&lt;path d=&quot;M6.9998 6V3C6.9998 2.44772 7.44752 2 7.9998 2H19.9998C20.5521 2 20.9998 2.44772 20.9998 3V17C20.9998 17.5523 20.5521 18 19.9998 18H16.9998V20.9991C16.9998 21.5519 16.5499 22 15.993 22H4.00666C3.45059 22 3 21.5554 3 20.9991L3.0026 7.00087C3.0027 6.44811 3.45264 6 4.00942 6H6.9998ZM5.00242 8L5.00019 20H14.9998V8H5.00242ZM8.9998 6H16.9998V16H18.9998V4H8.9998V6Z&quot; fill=&quot;currentColor&quot;&gt;&lt;&#x2F;path&gt;&lt;&#x2F;svg&gt;
+" data-check-icon="&lt;svg xmlns=&quot;http:&#x2F;&#x2F;www.w3.org&#x2F;2000&#x2F;svg&quot; viewBox=&quot;0 0 24 24&quot; width=&quot;18&quot; height=&quot;18&quot;&gt;&lt;path d=&quot;M10.0007 15.1709L19.1931 5.97852L20.6073 7.39273L10.0007 17.9993L3.63672 11.6354L5.05093 10.2212L10.0007 15.1709Z&quot; fill=&quot;currentColor&quot;&gt;&lt;&#x2F;path&gt;&lt;&#x2F;svg&gt;
+"></div>
+      
+      <article class="prose">
+        <h1>Making my website less boring</h1>
+        <div id="post-info">
+          <div id="date">
+            <span id="publish">Aug 17, 2026</span>
+            </div>
+
+          
+          <div id="tags">
+            <a class="instant" href="https://tymek.me/tags/webgl"><span>#</span>webgl</a><a class="instant" href="https://tymek.me/tags/shaders"><span>#</span>shaders</a><a class="instant" href="https://tymek.me/tags/css"><span>#</span>css</a><a class="instant" href="https://tymek.me/tags/safari"><span>#</span>safari</a>
+          </div>
+          
+        </div>
+
+        
+        
+
+        
+
+        <p>This site used to be a Serene-theme based static Zola blog, which means pretty boring. While scrolling Bluesky, I saw someone adding a really cool CRT inspired shader-based background (and general theme) to their personal site and I kept thinking about how I wanted mine to be at least a bit as interesting. One CC session of hacking with Fable later and we have the background you're (hopefully) looking at right now. Tap it. If you're on a phone, tilt it (I hope you gave the site motion sensor permission on iOS). This post is about how it works and about a number of Safari-specific problems I ran into.</p>
+<h2 id="the-field">The field<a class="zola-anchor" href="#the-field" aria-label="Anchor link for: the-field" style="visibility: hidden;"></a>
+</h2>
+<p>The background is a single fullscreen WebGL fragment shader running domain-warped simplex noise. I saw this technique on Inigo Quilez's <a rel="nofollow noreferrer external" href="https://iquilezles.org/articles/warp/">warping article</a> while looking for cool shaders on shadertoy.com. Instead of sampling noise at your position <code>p</code>, you sample it at <code>p + fbm(p + fbm(p))</code>. fbm (fractional Brownian motion) is just several layers of noise stacked at increasing frequency and decreasing amplitude, so the sum has both broad shapes and fine detail. Every level of nesting folds the field into more liquid, organic feeling shapes.</p>
+<p>Each of the 5 palette colors (mentioned below) keys its weight on a different component of the warp field, and the weights get raised to a high power, which exaggerates whichever color happens to lead. Each region ends up owned by a single hue. Without that exaggeration you get the arithmetic mean of five colors everywhere and it just looks like a swamp.</p>
+<h2 id="the-palette">The palette<a class="zola-anchor" href="#the-palette" aria-label="Anchor link for: the-palette" style="visibility: hidden;"></a>
+</h2>
+<p>The colors started from the site's existing accent blue. I took its darker variant (<code>#6F8FD1</code>, the dark-mode link color) to <a rel="nofollow noreferrer external" href="https://color.adobe.com">color.adobe.com</a> and pulled a split-complementary scheme from it:</p>
+<div style="display:flex;gap:4px;border-radius:12px;overflow:hidden;margin:1.5em 0;">
+  <div style="flex:1;min-width:0;height:110px;background:#6F8FD1;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#6F8FD1</div>
+  <div style="flex:1;min-width:0;height:110px;background:#D1BF6F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#D1BF6F</div>
+  <div style="flex:1;min-width:0;height:110px;background:#D1A66F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#D1A66F</div>
+  <div style="flex:1;min-width:0;height:110px;background:#3F4552;display:flex;align-items:flex-end;padding:8px;color:#faf9f7;font-size:0.7em;font-family:var(--code-font);">#3F4552</div>
+  <div style="flex:1;min-width:0;height:110px;background:#524E3F;display:flex;align-items:flex-end;padding:8px;color:#faf9f7;font-size:0.7em;font-family:var(--code-font);">#524E3F</div>
+</div>
+<p>I used the blue, gold, and tan in the shader but the two dark neutrals didn't show: over a near-black background they're barely above the noise floor, so as "light sources" they just read as murk. In their place I used a rose and a sage, picked by eye to fill the gap between the blue and the warm gold–tan pair and to make the field feel warmer. Blue and gold alone has this deep space/unsettling feel to it. The final shader set, in its dark-mode brightness:</p>
+<div style="display:flex;gap:4px;border-radius:12px;overflow:hidden;margin:1.5em 0;">
+  <div style="flex:1;min-width:0;height:110px;background:#6F8FD1;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#6F8FD1</div>
+  <div style="flex:1;min-width:0;height:110px;background:#D1BF6F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#D1BF6F</div>
+  <div style="flex:1;min-width:0;height:110px;background:#D1A66F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#D1A66F</div>
+  <div style="flex:1;min-width:0;height:110px;background:#D98AA6;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#D98AA6</div>
+  <div style="flex:1;min-width:0;height:110px;background:#7FC9A6;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);">#7FC9A6</div>
+</div>
+<p>Light mode uses the same five hues deepened by about fifteen percent, because colors blended into white need extra strength to show.</p>
+<h2 id="two-color-models">Two color models<a class="zola-anchor" href="#two-color-models" aria-label="Anchor link for: two-color-models" style="visibility: hidden;"></a>
+</h2>
+<p>The interesting part turned out to be that light and dark mode need more than just a slightly stronger palette to look nice. They also require different blending logic. Light mode is a bit like ink on paper, linear-mixing colors toward white desaturates everything into a white mess. Instead, each accent is normalized into a pure tint and multiplied over the paper white. This way saturation survives the whole blend and where the five-color competition produces muddy blends, a chroma gate fades the ink out entirely, so mud becomes white space. On the other hand dark mode is gated glow over black. My first attempts just mixed the same colors over near-black and produced grey soup. The fix was realizing that light mode was accidentally hiding the mud by pushing it into white contrasting spots. Dark mode now does the same thing, but in the opposite direction. Muddy regions get no glow and sink toward true black (the quietest zones hit <code>#000</code> exactly, which looks good on OLED), while genuinely-hued regions emit colored light, rimmed with a warm candlelit fade.
+What's nice is that even with these differences light and dark still share most of the same diffusion logic and the dark ↔ light transition looks pretty cool and seamless.</p>
+<h2 id="making-it-interactive">Making it interactive<a class="zola-anchor" href="#making-it-interactive" aria-label="Anchor link for: making-it-interactive" style="visibility: hidden;"></a>
+</h2>
+<p>I wanted the shader to feel alive so a natural choice is make it react to inputs. There's 3 possible interactions:</p>
+<ul>
+<li>Moving the cursor/dragging your finger on the screen makes the shader react. It's done by stirring the noise domain locally and applying a small rotational push with a gaussian falloff that trails behind the pointer/finger.</li>
+<li>Clicking/tapping your finger creates a splash. A transient ring expands with <code>sqrt(age)</code> and moves the field radially as it passes. In light mode the tap also deposits a persistent colored stain into a separate 256×256 ping-pong framebuffer simulation, the effect looks a bit like ink soaking into wet paper. In dark mode taps ripple as darkness instead, because glowing circles on black looked like a button press and shadows look more seamless.</li>
+<li>You can also tilt your phone to set a drift velocity. If you hold the phone at an angle the field flows in that direction, speed proportional to the angle. It applies to each warp layer at a different rate, so the big vortex folds should move past the broad color masses (making things look like actual liquid). If you stop moving the phone or put it down, the flow stops and the field returns to normal.</li>
+</ul>
+<h2 id="fighting-safari">Fighting Safari<a class="zola-anchor" href="#fighting-safari" aria-label="Anchor link for: fighting-safari" style="visibility: hidden;"></a>
+</h2>
+<p>There were two big issues I ran into when trying to make this look nice. One on iOS and the other on desktop.</p>
+<h3 id="liquid-glass">Liquid glass<a class="zola-anchor" href="#liquid-glass" aria-label="Anchor link for: liquid-glass" style="visibility: hidden;"></a>
+</h3>
+<p>I wanted the shader to show edge-to-edge on iOS, behind the status bar on top and the floating address bar. This turned out to be more hacky than expected. Some surprising things I figured out (hope they'll be helpful to someone in the future):</p>
+<ol>
+<li>Safari composites real page pixels behind its bars <strong>only when <code>scrollY &gt; 0</code></strong>. At exactly zero you get a flat fallback tint. A page that can't scroll can therefore never have translucent chrome (unless you cheat). I gave the page 160px of hidden scrollable runway, padded the content down to compensate, and pre-scroll past it before first paint. The page looks identical, but it's technically always mid-scroll, and the shader looks nice and continuous on mobile Safari. The tradeoff is that the posts/about/projects subpages can be a bit glitchy when scrolling past the top/bottom but it's a fair tradeoff.</li>
+<li>Never fight the scroll compositor mid-gesture. iOS delivers scroll events asynchronously from the compositor thread, so any <code>scrollTo</code> during momentum lands late and causes shaking. The right hook is <code>scrollend</code> (added in Safari 26.2). Let the native rubber-band like animation play out, then ease back once everything has actually stopped.</li>
+<li><code>dvh</code> units and <code>window.innerHeight</code> both <em>change during the scroll gesture</em> as the toolbar collapses. If your scroll bounds depend on either, they chase the user's finger. Use <code>lvh</code> and compute bounds only at rest.</li>
+<li>Back-navigation restores from bfcache with a different toolbar state than you left, landing the scroll outside your content zone, and any settle animation that was frozen mid-flight resumes. Clamp instantly on <code>pageshow</code>, before the user can see it.</li>
+</ol>
+<p>Also, <code>DeviceOrientationEvent.requestPermission()</code> silently rejects unless called from a <code>click</code> handler (<code>pointerdown</code> doesn't count) and a rejected call stores nothing, so if you remove your listener after the first attempt, the feature is just dead forever.</p>
+<h3 id="performance">Performance<a class="zola-anchor" href="#performance" aria-label="Anchor link for: performance" style="visibility: hidden;"></a>
+</h3>
+<p>Desktop Safari ran the shader at what felt like 5fps while my M1 Macbook Pro was running full throttle. First I assumed it was the fact that the shader didn't stop running in inactive tabs (I had a couple opened in both Safari and Chrome). Implementing that helped with the laptop overheating, but it didn't fix the 5fps situation on Safari. Claude ran some web searches and found that <code>backdrop-filter</code> from glass UI might be the problem. Safari re-blurs every glass element's backdrop each canvas frame. Turns out that actually costs us some performance compared to Chrome, but after adding debug metrics I found a pretty obvious problem. My "0.4× resolution" canvas had no absolute pixel cap, and on a 6K display 0.4 × 2 (DPR) works out to 3.76 megapixels × 16 noise evaluations, which is a fair bit of work for one tab. To address that I added a <strong>1.2MP cap</strong> on the drawing buffer, no matter the display. I also added adaptive refresh rate for the animation, full refresh rate only while a user is interacting, half rate for the ambient drift (the tiers are derived from measured vsync intervals, so ProMotion screens get 120/60 and everyone else 60/30). Two other small tweaks that helped were:</p>
+<ul>
+<li>making the ink simulation only run for a few seconds after a tap instead of running forever afterwards</li>
+<li>no synchronous <code>readPixels</code> calls, Safari moved WebGL into a separate GPU process, every readback is a blocking IPC round-trip.</li>
+</ul>
+<p>Overall the site is now much cooler and less boring, and I actually feel proud of it.</p>
+
+      </article>
+
+      
+      
+
+      
       
     </div>
-  </main>
-  
+
+    
 
 
 <footer>
@@ -494,9 +646,13 @@ en">
 
 
 
+  </main>
 </div>
 
   
+<script src="/js/lightense.min.js"></script>
+
+
   <script src="https://tymek.me/js/main.js"></script>
 </body>
 

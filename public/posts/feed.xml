@@ -5,9 +5,75 @@
 	<link rel="self" type="application/atom+xml" href="https://tymek.me/posts/feed.xml"/>
   <link rel="alternate" type="text/html" href="https://tymek.me/posts/"/>
   
-	<updated>2025-11-28T00:00:00+00:00</updated>
+	<updated>2026-08-17T00:00:00+00:00</updated>
 	
 	<id>https://tymek.me/posts/feed.xml</id>
+	<entry xml:lang="en">
+		<title>Making my website less boring</title>
+		<published>2026-08-17T00:00:00+00:00</published>
+		<updated>2026-08-17T00:00:00+00:00</updated>
+		<link rel="alternate" type="text/html" href="https://tymek.me/posts/this-website-is-a-shader-now/"/>
+		<id>https://tymek.me/posts/this-website-is-a-shader-now/</id>
+    
+		<content type="html" xml:base="https://tymek.me/posts/this-website-is-a-shader-now/">&lt;p&gt;This site used to be a Serene-theme based static Zola blog, which means pretty boring. While scrolling Bluesky, I saw someone adding a really cool CRT inspired shader-based background (and general theme) to their personal site and I kept thinking about how I wanted mine to be at least a bit as interesting. One CC session of hacking with Fable later and we have the background you&#x27;re (hopefully) looking at right now. Tap it. If you&#x27;re on a phone, tilt it (I hope you gave the site motion sensor permission on iOS). This post is about how it works and about a number of Safari-specific problems I ran into.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-field&quot;&gt;The field&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-field&quot; aria-label=&quot;Anchor link for: the-field&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h2&gt;
+&lt;p&gt;The background is a single fullscreen WebGL fragment shader running domain-warped simplex noise. I saw this technique on Inigo Quilez&#x27;s &lt;a rel=&quot;nofollow noreferrer external&quot; href=&quot;https:&#x2F;&#x2F;iquilezles.org&#x2F;articles&#x2F;warp&#x2F;&quot;&gt;warping article&lt;&#x2F;a&gt; while looking for cool shaders on shadertoy.com. Instead of sampling noise at your position &lt;code&gt;p&lt;&#x2F;code&gt;, you sample it at &lt;code&gt;p + fbm(p + fbm(p))&lt;&#x2F;code&gt;. fbm (fractional Brownian motion) is just several layers of noise stacked at increasing frequency and decreasing amplitude, so the sum has both broad shapes and fine detail. Every level of nesting folds the field into more liquid, organic feeling shapes.&lt;&#x2F;p&gt;
+&lt;p&gt;Each of the 5 palette colors (mentioned below) keys its weight on a different component of the warp field, and the weights get raised to a high power, which exaggerates whichever color happens to lead. Each region ends up owned by a single hue. Without that exaggeration you get the arithmetic mean of five colors everywhere and it just looks like a swamp.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-palette&quot;&gt;The palette&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-palette&quot; aria-label=&quot;Anchor link for: the-palette&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h2&gt;
+&lt;p&gt;The colors started from the site&#x27;s existing accent blue. I took its darker variant (&lt;code&gt;#6F8FD1&lt;&#x2F;code&gt;, the dark-mode link color) to &lt;a rel=&quot;nofollow noreferrer external&quot; href=&quot;https:&#x2F;&#x2F;color.adobe.com&quot;&gt;color.adobe.com&lt;&#x2F;a&gt; and pulled a split-complementary scheme from it:&lt;&#x2F;p&gt;
+&lt;div style=&quot;display:flex;gap:4px;border-radius:12px;overflow:hidden;margin:1.5em 0;&quot;&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#6F8FD1;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#6F8FD1&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#D1BF6F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#D1BF6F&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#D1A66F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#D1A66F&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#3F4552;display:flex;align-items:flex-end;padding:8px;color:#faf9f7;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#3F4552&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#524E3F;display:flex;align-items:flex-end;padding:8px;color:#faf9f7;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#524E3F&lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;p&gt;I used the blue, gold, and tan in the shader but the two dark neutrals didn&#x27;t show: over a near-black background they&#x27;re barely above the noise floor, so as &quot;light sources&quot; they just read as murk. In their place I used a rose and a sage, picked by eye to fill the gap between the blue and the warm gold–tan pair and to make the field feel warmer. Blue and gold alone has this deep space&#x2F;unsettling feel to it. The final shader set, in its dark-mode brightness:&lt;&#x2F;p&gt;
+&lt;div style=&quot;display:flex;gap:4px;border-radius:12px;overflow:hidden;margin:1.5em 0;&quot;&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#6F8FD1;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#6F8FD1&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#D1BF6F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#D1BF6F&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#D1A66F;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#D1A66F&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#D98AA6;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#D98AA6&lt;&#x2F;div&gt;
+  &lt;div style=&quot;flex:1;min-width:0;height:110px;background:#7FC9A6;display:flex;align-items:flex-end;padding:8px;color:#16161e;font-size:0.7em;font-family:var(--code-font);&quot;&gt;#7FC9A6&lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;p&gt;Light mode uses the same five hues deepened by about fifteen percent, because colors blended into white need extra strength to show.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;two-color-models&quot;&gt;Two color models&lt;a class=&quot;zola-anchor&quot; href=&quot;#two-color-models&quot; aria-label=&quot;Anchor link for: two-color-models&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h2&gt;
+&lt;p&gt;The interesting part turned out to be that light and dark mode need more than just a slightly stronger palette to look nice. They also require different blending logic. Light mode is a bit like ink on paper, linear-mixing colors toward white desaturates everything into a white mess. Instead, each accent is normalized into a pure tint and multiplied over the paper white. This way saturation survives the whole blend and where the five-color competition produces muddy blends, a chroma gate fades the ink out entirely, so mud becomes white space. On the other hand dark mode is gated glow over black. My first attempts just mixed the same colors over near-black and produced grey soup. The fix was realizing that light mode was accidentally hiding the mud by pushing it into white contrasting spots. Dark mode now does the same thing, but in the opposite direction. Muddy regions get no glow and sink toward true black (the quietest zones hit &lt;code&gt;#000&lt;&#x2F;code&gt; exactly, which looks good on OLED), while genuinely-hued regions emit colored light, rimmed with a warm candlelit fade.
+What&#x27;s nice is that even with these differences light and dark still share most of the same diffusion logic and the dark ↔ light transition looks pretty cool and seamless.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;making-it-interactive&quot;&gt;Making it interactive&lt;a class=&quot;zola-anchor&quot; href=&quot;#making-it-interactive&quot; aria-label=&quot;Anchor link for: making-it-interactive&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h2&gt;
+&lt;p&gt;I wanted the shader to feel alive so a natural choice is make it react to inputs. There&#x27;s 3 possible interactions:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Moving the cursor&#x2F;dragging your finger on the screen makes the shader react. It&#x27;s done by stirring the noise domain locally and applying a small rotational push with a gaussian falloff that trails behind the pointer&#x2F;finger.&lt;&#x2F;li&gt;
+&lt;li&gt;Clicking&#x2F;tapping your finger creates a splash. A transient ring expands with &lt;code&gt;sqrt(age)&lt;&#x2F;code&gt; and moves the field radially as it passes. In light mode the tap also deposits a persistent colored stain into a separate 256×256 ping-pong framebuffer simulation, the effect looks a bit like ink soaking into wet paper. In dark mode taps ripple as darkness instead, because glowing circles on black looked like a button press and shadows look more seamless.&lt;&#x2F;li&gt;
+&lt;li&gt;You can also tilt your phone to set a drift velocity. If you hold the phone at an angle the field flows in that direction, speed proportional to the angle. It applies to each warp layer at a different rate, so the big vortex folds should move past the broad color masses (making things look like actual liquid). If you stop moving the phone or put it down, the flow stops and the field returns to normal.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;fighting-safari&quot;&gt;Fighting Safari&lt;a class=&quot;zola-anchor&quot; href=&quot;#fighting-safari&quot; aria-label=&quot;Anchor link for: fighting-safari&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h2&gt;
+&lt;p&gt;There were two big issues I ran into when trying to make this look nice. One on iOS and the other on desktop.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;liquid-glass&quot;&gt;Liquid glass&lt;a class=&quot;zola-anchor&quot; href=&quot;#liquid-glass&quot; aria-label=&quot;Anchor link for: liquid-glass&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h3&gt;
+&lt;p&gt;I wanted the shader to show edge-to-edge on iOS, behind the status bar on top and the floating address bar. This turned out to be more hacky than expected. Some surprising things I figured out (hope they&#x27;ll be helpful to someone in the future):&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Safari composites real page pixels behind its bars &lt;strong&gt;only when &lt;code&gt;scrollY &amp;gt; 0&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;. At exactly zero you get a flat fallback tint. A page that can&#x27;t scroll can therefore never have translucent chrome (unless you cheat). I gave the page 160px of hidden scrollable runway, padded the content down to compensate, and pre-scroll past it before first paint. The page looks identical, but it&#x27;s technically always mid-scroll, and the shader looks nice and continuous on mobile Safari. The tradeoff is that the posts&#x2F;about&#x2F;projects subpages can be a bit glitchy when scrolling past the top&#x2F;bottom but it&#x27;s a fair tradeoff.&lt;&#x2F;li&gt;
+&lt;li&gt;Never fight the scroll compositor mid-gesture. iOS delivers scroll events asynchronously from the compositor thread, so any &lt;code&gt;scrollTo&lt;&#x2F;code&gt; during momentum lands late and causes shaking. The right hook is &lt;code&gt;scrollend&lt;&#x2F;code&gt; (added in Safari 26.2). Let the native rubber-band like animation play out, then ease back once everything has actually stopped.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;code&gt;dvh&lt;&#x2F;code&gt; units and &lt;code&gt;window.innerHeight&lt;&#x2F;code&gt; both &lt;em&gt;change during the scroll gesture&lt;&#x2F;em&gt; as the toolbar collapses. If your scroll bounds depend on either, they chase the user&#x27;s finger. Use &lt;code&gt;lvh&lt;&#x2F;code&gt; and compute bounds only at rest.&lt;&#x2F;li&gt;
+&lt;li&gt;Back-navigation restores from bfcache with a different toolbar state than you left, landing the scroll outside your content zone, and any settle animation that was frozen mid-flight resumes. Clamp instantly on &lt;code&gt;pageshow&lt;&#x2F;code&gt;, before the user can see it.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Also, &lt;code&gt;DeviceOrientationEvent.requestPermission()&lt;&#x2F;code&gt; silently rejects unless called from a &lt;code&gt;click&lt;&#x2F;code&gt; handler (&lt;code&gt;pointerdown&lt;&#x2F;code&gt; doesn&#x27;t count) and a rejected call stores nothing, so if you remove your listener after the first attempt, the feature is just dead forever.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;performance&quot;&gt;Performance&lt;a class=&quot;zola-anchor&quot; href=&quot;#performance&quot; aria-label=&quot;Anchor link for: performance&quot; style=&quot;visibility: hidden;&quot;&gt;&lt;&#x2F;a&gt;
+&lt;&#x2F;h3&gt;
+&lt;p&gt;Desktop Safari ran the shader at what felt like 5fps while my M1 Macbook Pro was running full throttle. First I assumed it was the fact that the shader didn&#x27;t stop running in inactive tabs (I had a couple opened in both Safari and Chrome). Implementing that helped with the laptop overheating, but it didn&#x27;t fix the 5fps situation on Safari. Claude ran some web searches and found that &lt;code&gt;backdrop-filter&lt;&#x2F;code&gt; from glass UI might be the problem. Safari re-blurs every glass element&#x27;s backdrop each canvas frame. Turns out that actually costs us some performance compared to Chrome, but after adding debug metrics I found a pretty obvious problem. My &quot;0.4× resolution&quot; canvas had no absolute pixel cap, and on a 6K display 0.4 × 2 (DPR) works out to 3.76 megapixels × 16 noise evaluations, which is a fair bit of work for one tab. To address that I added a &lt;strong&gt;1.2MP cap&lt;&#x2F;strong&gt; on the drawing buffer, no matter the display. I also added adaptive refresh rate for the animation, full refresh rate only while a user is interacting, half rate for the ambient drift (the tiers are derived from measured vsync intervals, so ProMotion screens get 120&#x2F;60 and everyone else 60&#x2F;30). Two other small tweaks that helped were:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;making the ink simulation only run for a few seconds after a tap instead of running forever afterwards&lt;&#x2F;li&gt;
+&lt;li&gt;no synchronous &lt;code&gt;readPixels&lt;&#x2F;code&gt; calls, Safari moved WebGL into a separate GPU process, every readback is a blocking IPC round-trip.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Overall the site is now much cooler and less boring, and I actually feel proud of it.&lt;&#x2F;p&gt;
+</content>
+	</entry>
 	<entry xml:lang="en">
 		<title>Setting up a Rocketpool validator node</title>
 		<published>2025-11-28T00:00:00+00:00</published>
