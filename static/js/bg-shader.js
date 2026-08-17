@@ -49,6 +49,8 @@
     'uniform vec4 u_drops[8];',
     '// persistent ink stain layer, written by the sim pass each frame',
     'uniform sampler2D u_ink;',
+    '// device tilt in eased, normalized units; zero on non-mobile',
+    'uniform vec2 u_tilt;',
     '',
     '// ashima 2d simplex noise',
     'vec3 permute(vec3 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }',
@@ -103,6 +105,8 @@
     '  vec2 aspect = vec2(u_res.x / u_res.y, 1.0);',
     '  // low base frequency: fewer, larger color blobs',
     '  vec2 p = uv * aspect * 0.45;',
+    '  // tilting the phone pans the field for a soft parallax',
+    '  p += u_tilt;',
     '  float t = u_time * 0.008;',
     '',
     '  // pointer influence: gaussian falloff around the cursor',
@@ -209,6 +213,8 @@
     '// xy: pos in uv, z: radius, w: amount (zero when slot inactive)',
     'uniform vec4 u_splat[8];',
     'uniform vec3 u_splatcol[8];',
+    '// tilt-derived gravity so ink drains downhill on a tilted phone',
+    'uniform vec2 u_grav;',
     '',
     'float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float vnoise(vec2 p) {',
@@ -226,6 +232,7 @@
     '  vec2 pp = uv * u_aspect * 2.0;',
     '  vec2 vel = vec2(vnoise(pp + u_time * 0.03),',
     '                  vnoise(pp + vec2(4.7, 2.9) - u_time * 0.02));',
+    '  vel += u_grav * 2.0;',
     '  vec4 col = texture2D(u_prev, uv - vel * 0.035 * u_dt);',
     '  // mild diffusion softens edges as the ink spreads',
     '  vec2 px = 1.0 / u_simres;',
@@ -302,6 +309,7 @@
       pstrength: gl.getUniformLocation(prog, 'u_pstrength'),
       drops: gl.getUniformLocation(prog, 'u_drops'),
       ink: gl.getUniformLocation(prog, 'u_ink'),
+      tilt: gl.getUniformLocation(prog, 'u_tilt'),
     };
     gl.uniform1i(u.ink, 0);
 
@@ -360,6 +368,7 @@
         aspect: gl.getUniformLocation(p2, 'u_aspect'),
         splat: gl.getUniformLocation(p2, 'u_splat'),
         splatcol: gl.getUniformLocation(p2, 'u_splatcol'),
+        grav: gl.getUniformLocation(p2, 'u_grav'),
       };
     })();
 
@@ -469,7 +478,7 @@
     var tintFrame = 0;
     var desktopTint = !window.matchMedia('(pointer: coarse)').matches;
     function sampleToolbarTint() {
-      if (!desktopTint || !tintRow || ++tintFrame % 30 !== 0) return;
+      if (!desktopTint || !tintRow || ++tintFrame % 60 !== 0) return;
       // gl origin is bottom-left, so the top row is at height - 1
       gl.readPixels(0, canvas.height - 1, canvas.width, 1, gl.RGBA, gl.UNSIGNED_BYTE, tintRow);
       var r = 0, g = 0, b = 0, n = 0;
@@ -529,6 +538,18 @@
     var drops = [];
     var dropData = new Float32Array(32);
     var dropHue = 0;
+    // resume splashes saved by the previous page (ages are stored relative,
+    // since performance.now() restarts on every navigation)
+    try {
+      var savedDrops = JSON.parse(sessionStorage.getItem('bg-shader-drops') || '[]');
+      var nowR = performance.now();
+      savedDrops.forEach(function (d) {
+        if (d.age < DROP_LIFE && drops.length < 8) {
+          drops.push({ x: d.x, y: d.y, t0: nowR - d.age });
+        }
+      });
+      sessionStorage.removeItem('bg-shader-drops');
+    } catch (err) {}
     window.addEventListener('pointerdown', function (e) {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       var ux = toUvX(e.clientX);
@@ -541,6 +562,30 @@
       if (pendingSplats.length < 8) pendingSplats.push({ x: ux, y: uy, color: [c[0], c[1], c[2]] });
     }, { passive: true });
 
+    // device tilt: pans the field and drains the ink downhill. needs a secure
+    // context (silently inert over plain http) and, on ios, a permission
+    // dialog that must come from a user gesture, so the first tap requests it
+    var tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+    function onOrient(e) {
+      if (e.gamma == null || e.beta == null) return;
+      // gamma is left/right tilt, beta front/back; ~45 degrees is a natural
+      // holding angle so treat it as neutral
+      tilt.tx = Math.max(-1, Math.min(1, e.gamma / 30));
+      tilt.ty = Math.max(-1, Math.min(1, (e.beta - 45) / 30));
+    }
+    var needsMotionPermission = typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function';
+    if (needsMotionPermission) {
+      window.addEventListener('pointerdown', function req() {
+        window.removeEventListener('pointerdown', req);
+        DeviceOrientationEvent.requestPermission().then(function (state) {
+          if (state === 'granted') window.addEventListener('deviceorientation', onOrient);
+        }).catch(function () {});
+      });
+    } else if (typeof DeviceOrientationEvent !== 'undefined') {
+      window.addEventListener('deviceorientation', onOrient);
+    }
+
     function ease(a, b, k) {
       var settled = true;
       for (var i = 0; i < a.length; i++) {
@@ -550,11 +595,27 @@
       return settled;
     }
 
-    var start = performance.now();
-    var last = start;
+    // resume the field clock from the previous page: the pattern is a pure
+    // function of time, so carrying the clock across navigations makes the
+    // background continuous instead of snapping back to its t=0 state
+    var savedT = parseFloat(sessionStorage.getItem('bg-shader-t') || '0');
+    var start = performance.now() - savedT * 1000;
+    window.addEventListener('pagehide', function () {
+      var nowP = performance.now();
+      sessionStorage.setItem('bg-shader-t', String((nowP - start) / 1000));
+      // active splashes carry over so a tap on a link keeps rippling on the
+      // next page instead of being cut off by the navigation
+      sessionStorage.setItem('bg-shader-drops', JSON.stringify(drops.map(function (d) {
+        return { x: d.x, y: d.y, age: nowP - d.t0 };
+      })));
+    });
+    var last = performance.now();
     function frame(now) {
       requestAnimationFrame(frame);
       if (document.hidden) return;
+      // cap at ~30fps: the field drifts slowly, and every canvas frame makes
+      // safari re-blur the backdrop of each glass element above it
+      if (now - last < 31) return;
       resize();
 
       var dt = Math.min((now - last) / 1000, 0.1);
@@ -581,6 +642,11 @@
       var starget = reducedMotion.matches ? 0 : Math.max(baseline, pointer.kick);
       pointer.s += (starget - pointer.s) * Math.min(1, dt * 3);
 
+      // slow tilt ease so the parallax feels like liquid settling, not a gyro
+      var tk = Math.min(1, dt * 2);
+      tilt.x += ((reducedMotion.matches ? 0 : tilt.tx) - tilt.x) * tk;
+      tilt.y += ((reducedMotion.matches ? 0 : tilt.ty) - tilt.y) * tk;
+
       // with reduced motion the field is static, so skip drawing once settled
       if (reducedMotion.matches && !needsRender) return;
       needsRender = false;
@@ -599,6 +665,8 @@
         gl.uniform1f(simU.dt, dt);
         gl.uniform1f(simU.time, (now - start) / 1000);
         gl.uniform2f(simU.aspect, canvas.width / canvas.height, 1);
+        // uv y is up, so tilting the top away drains ink down the screen
+        gl.uniform2f(simU.grav, tilt.x, -tilt.y);
         splatData.fill(0);
         splatColData.fill(0);
         for (var si = 0; si < pendingSplats.length; si++) {
@@ -633,6 +701,7 @@
       gl.uniform1f(u.intensity, cur.intensity);
       gl.uniform2f(u.pointer, pointer.x, pointer.y);
       gl.uniform1f(u.pstrength, pointer.s);
+      gl.uniform2f(u.tilt, tilt.x * 0.15, tilt.y * 0.15);
       for (var di = drops.length - 1; di >= 0; di--) {
         if (now - drops[di].t0 > DROP_LIFE) drops.splice(di, 1);
       }

@@ -21,6 +21,19 @@
 </head>
 
 <body class="{% block page %}{% endblock page%}{% if config.extra.force_theme == "dark" %} dark{% endif %}">
+  <script>
+    // pre-scroll past the runway before first paint: the deferred shader
+    // script runs too late, and view transitions animate over the early
+    // scrollY=0 window where ios paints its bars with a flat fallback
+    // color. values must match RUNWAY in bg-shader.js and _custom_css.html
+    if (window.matchMedia('(max-width: 760px) and (pointer: coarse)').matches) {
+      // manual restoration: safari would otherwise re-scroll toward 0 after
+      // load, making the settle visibly drag the page back to the runway
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      document.body.classList.add('has-runway');
+      if (window.scrollY < 160) window.scrollTo(0, 160);
+    }
+  </script>
   {% if not config.extra.force_theme %}
   <script>
     const theme = sessionStorage.getItem('theme');

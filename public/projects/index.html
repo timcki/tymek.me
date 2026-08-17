@@ -132,6 +132,149 @@
     min-height: calc(100lvh + 320px);
   }
 
+  /* cross-document view transitions: the browser crossfades between pages
+     instead of hard-cutting. no-op in browsers without support */
+  @view-transition {
+    navigation: auto;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
+  /* mobile opts out of the crossfade: ios snapshots the scrollY=0 state and
+     shows flat black bars for the duration of the animation. an instant
+     transition avoids that; splash carry-over works independently */
+  @media (max-width: 760px) and (pointer: coarse) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
+
+  /* liquid glass ui: translucent pills and cards floating over the shader.
+     backdrop-filter samples the canvas behind them, so the glass genuinely
+     refracts the moving colors. never apply this to fixed/sticky elements:
+     ios safari would adopt their background for its toolbar tint */
+  body {
+    --glass-bg: rgba(255, 255, 255, 0.3);
+    --glass-bg-hover: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(38, 36, 46, 0.1);
+    --glass-shadow: rgba(38, 36, 46, 0.1);
+  }
+  body.dark {
+    --glass-bg: rgba(150, 160, 195, 0.08);
+    --glass-bg-hover: rgba(150, 160, 195, 0.16);
+    --glass-border: rgba(200, 205, 230, 0.1);
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+  }
+
+  body.homepage #links #left a,
+  body .layout-list .read-more a {
+    padding: 0.3em 0.95em;
+    line-height: 1.5;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  body.homepage #links #left a:hover,
+  body .layout-list .read-more a:hover {
+    background: var(--glass-bg-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px var(--glass-shadow);
+  }
+  body.homepage #links #left a:active,
+  body .layout-list .read-more a:active {
+    background: var(--glass-bg-hover);
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+
+  /* the theme underlines nav/read-more links with the primary color at equal
+     specificity, and its stylesheet loads after this one, so out-rank it:
+     pills and cards get a uniform hairline on every edge, in every state */
+  html body.homepage #links #left a,
+  html body .layout-list .read-more a,
+  html body .layout-list a.post,
+  html body.homepage #links #left a:hover,
+  html body .layout-list .read-more a:hover,
+  html body .layout-list a.post:hover {
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  /* socials live in #info (moved there in the home.html override), so they
+     need the layout the theme only gives them inside #links. plain icons,
+     no glass: they read as clickable on their own */
+  body.homepage #info #right {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    margin-left: auto;
+  }
+  body.homepage #info #right a,
+  body.homepage #info #right button {
+    -webkit-tap-highlight-color: transparent;
+    text-decoration: none;
+    line-height: 0;
+    color: var(--text-color);
+  }
+  body.homepage #info #right a:hover,
+  body.homepage #info #right button:hover {
+    color: var(--primary-color);
+  }
+  body.homepage #info #right button {
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+  }
+  /* let the pill drop below the header instead of crushing the bio */
+  body.homepage #info {
+    flex-wrap: wrap;
+  }
+  /* on phones the pill wraps under the bio; pin it to the name row instead */
+  @media (max-width: 640px) {
+    body.homepage #info {
+      position: relative;
+    }
+    body.homepage #info #right {
+      position: absolute;
+      /* optical centering against the name line; 15px matches #info padding */
+      top: -0.3em;
+      right: 15px;
+      margin-left: 0;
+    }
+  }
+
+  /* post entries become quiet glass cards (home recent list + blog listing);
+     the material only asserts itself on hover/press */
+  body .layout-list a.post {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 0.8em 1.1em;
+    margin: 0.7em 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  body .layout-list a.post:hover {
+    background: var(--glass-bg-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px var(--glass-shadow);
+  }
+  body .layout-list a.post:active {
+    background: var(--glass-bg-hover);
+    transform: scale(0.99);
+    box-shadow: none;
+  }
+
   /* no bounce past the absolute document edges on mobile: parking at exact
      scrollY 0/max flips safari's chrome to a flat tint. the runway settle
      in bg-shader.js provides the rubber-band feel instead */
@@ -155,6 +298,19 @@
 </head>
 
 <body class="prose-page">
+  <script>
+    // pre-scroll past the runway before first paint: the deferred shader
+    // script runs too late, and view transitions animate over the early
+    // scrollY=0 window where ios paints its bars with a flat fallback
+    // color. values must match RUNWAY in bg-shader.js and _custom_css.html
+    if (window.matchMedia('(max-width: 760px) and (pointer: coarse)').matches) {
+      // manual restoration: safari would otherwise re-scroll toward 0 after
+      // load, making the settle visibly drag the page back to the runway
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      document.body.classList.add('has-runway');
+      if (window.scrollY < 160) window.scrollTo(0, 160);
+    }
+  </script>
   
   <script>
     const theme = sessionStorage.getItem('theme');
