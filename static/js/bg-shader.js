@@ -112,8 +112,6 @@
     '  float paper = smoothstep(0.45, 0.75, dot(u_bg, vec3(0.299, 0.587, 0.114)));',
     '  // low base frequency: fewer, larger color blobs',
     '  vec2 p = uv * aspect * 0.45;',
-    '  // tilting the phone pans the field for a soft parallax',
-    '  p += u_tilt;',
     '  float t = u_time * 0.008;',
     '',
     '  // pointer influence: gaussian falloff around the cursor',
@@ -144,11 +142,15 @@
     '',
     '  // double domain warp (iquilezles.org/articles/warp): q displaces p,',
     '  // r folds the displaced field again, f carries the fine filaments',
-    '  vec2 q = vec2(fbm(p + t * 0.40), fbm(p + vec2(5.2, 1.3) - t * 0.30));',
+    '  // tilt flow is applied per warp layer at different rates, so broad',
+    '  // masses, vortex folds and fine detail shear past each other like',
+    '  // liquid instead of the whole frame panning together',
+    '  vec2 q = vec2(fbm(p + u_tilt * 0.4 + t * 0.40),',
+    '                fbm(p + u_tilt * 0.4 + vec2(5.2, 1.3) - t * 0.30));',
     '  q += 0.05 * sin(vec2(0.11, 0.17) * u_time * 0.06 + length(q) * 1.7);',
-    '  vec2 r = vec2(fbm(p + 2.2 * q + vec2(1.7, 9.2) + t * 0.15),',
-    '                fbm(p + 2.2 * q + vec2(8.3, 2.8) - t * 0.12));',
-    '  float f = 0.5 + 0.5 * fbm5(p * 1.0 + 2.2 * r);',
+    '  vec2 r = vec2(fbm(p + u_tilt + 2.2 * q + vec2(1.7, 9.2) + t * 0.15),',
+    '                fbm(p + u_tilt + 2.2 * q + vec2(8.3, 2.8) - t * 0.12));',
+    '  float f = 0.5 + 0.5 * fbm5(p * 1.0 + u_tilt * 1.8 + 2.2 * r);',
     '  // gentle contrast keyed on warp strength; kept low to stay blobby',
     '  f = mix(f, f * f * f, 0.3 * abs(r.x));',
     '',
@@ -619,8 +621,27 @@
     // context (silently inert over plain http) and, on ios, a permission
     // dialog that must come from a user gesture, so the first tap requests it
     var tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+    // accumulated field offset: tilt sets a drift velocity, not a position
+    var tiltOffset = { x: 0, y: 0 };
+    // stillness tracking: a phone resting on a table (at any angle) should
+    // stop the flow and let the field ease back to baseline
+    var lastRawG = null;
+    var lastRawB = null;
+    var motionEnergy = 0;
+    var lastMotionAt = 0;
     function onOrient(e) {
       if (e.gamma == null || e.beta == null) return;
+      if (lastRawG !== null) {
+        var change = Math.abs(e.gamma - lastRawG) + Math.abs(e.beta - lastRawB);
+        // smoothed angular change per event; sensor noise sits well below
+        // the threshold, real handling well above it
+        motionEnergy = motionEnergy * 0.9 + change * 0.1;
+        if (motionEnergy > 0.25) lastMotionAt = performance.now();
+      } else {
+        lastMotionAt = performance.now();
+      }
+      lastRawG = e.gamma;
+      lastRawB = e.beta;
       // gamma is left/right tilt, beta front/back; ~45 degrees is a natural
       // holding angle so treat it as neutral
       tilt.tx = Math.max(-1, Math.min(1, e.gamma / 30));
@@ -629,12 +650,23 @@
     var needsMotionPermission = typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function';
     if (needsMotionPermission) {
-      window.addEventListener('pointerdown', function req() {
-        window.removeEventListener('pointerdown', req);
+      // must be a full activation gesture: safari rejects requestPermission
+      // from pointerdown. keep retrying on later clicks until a definitive
+      // answer, since a rejected call would otherwise kill the feature
+      var requestMotion = function () {
         DeviceOrientationEvent.requestPermission().then(function (state) {
-          if (state === 'granted') window.addEventListener('deviceorientation', onOrient);
-        }).catch(function () {});
-      });
+          if (bgMode === 'debug') console.log('[bg-shader] motion permission:', state);
+          if (state === 'granted') {
+            window.addEventListener('deviceorientation', onOrient);
+            window.removeEventListener('click', requestMotion);
+          } else if (state === 'denied') {
+            window.removeEventListener('click', requestMotion);
+          }
+        }).catch(function (err) {
+          if (bgMode === 'debug') console.log('[bg-shader] motion request failed:', err);
+        });
+      };
+      window.addEventListener('click', requestMotion);
     } else if (typeof DeviceOrientationEvent !== 'undefined') {
       window.addEventListener('deviceorientation', onOrient);
     }
@@ -716,10 +748,23 @@
       var starget = reducedMotion.matches ? 0 : Math.max(baseline, pointer.kick);
       pointer.s += (starget - pointer.s) * Math.min(1, dt * 3);
 
-      // slow tilt ease so the parallax feels like liquid settling, not a gyro
+      // slow tilt ease so the drift feels like liquid settling, not a gyro.
+      // after ~3s without meaningful angular change the phone counts as
+      // resting: the flow stops and the field eases back to baseline
+      var resting = !lastMotionAt || now - lastMotionAt > 3000;
       var tk = Math.min(1, dt * 2);
-      tilt.x += ((reducedMotion.matches ? 0 : tilt.tx) - tilt.x) * tk;
-      tilt.y += ((reducedMotion.matches ? 0 : tilt.ty) - tilt.y) * tk;
+      tilt.x += ((reducedMotion.matches || resting ? 0 : tilt.tx) - tilt.x) * tk;
+      tilt.y += ((reducedMotion.matches || resting ? 0 : tilt.ty) - tilt.y) * tk;
+      // integrate: contents flow in the tilt direction at a speed set by the
+      // angle, and stop when the phone is level. signs make a right tilt
+      // flow right and a forward tilt flow down the screen (uv y is up)
+      tiltOffset.x -= tilt.x * 0.02 * dt;
+      tiltOffset.y += tilt.y * 0.02 * dt;
+      if (resting) {
+        var rk = Math.min(1, dt / 4);
+        tiltOffset.x -= tiltOffset.x * rk;
+        tiltOffset.y -= tiltOffset.y * rk;
+      }
 
       // with reduced motion the field is static, so skip drawing once settled
       if (reducedMotion.matches && !needsRender) return;
@@ -783,7 +828,7 @@
       gl.uniform1f(u.intensity, cur.intensity);
       gl.uniform2f(u.pointer, pointer.x, pointer.y);
       gl.uniform1f(u.pstrength, pointer.s);
-      gl.uniform2f(u.tilt, tilt.x * 0.15, tilt.y * 0.15);
+      gl.uniform2f(u.tilt, tiltOffset.x, tiltOffset.y);
       for (var di = drops.length - 1; di >= 0; di--) {
         if (now - drops[di].t0 > DROP_LIFE) drops.splice(di, 1);
       }
