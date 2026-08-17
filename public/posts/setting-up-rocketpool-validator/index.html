@@ -109,16 +109,24 @@
      only when the canvas is actually running (bg-shader.js adds the class) */
   #bg-canvas {
     position: fixed;
-    /* bleed past the viewport so ios safari composites real shader pixels
-       behind its liquid glass chrome instead of a flat fallback tint */
-    top: -100px;
-    left: 0;
+    inset: 0;
     width: 100vw;
-    height: calc(100vh + 260px);
+    height: 100vh;
     width: 100lvw;
-    height: calc(100lvh + 260px);
+    height: 100lvh;
     z-index: -1;
     pointer-events: none;
+  }
+  /* mobile only: bleed past the viewport so ios safari composites real
+     shader pixels behind its liquid glass chrome instead of a flat tint.
+     on desktop the bleed just rendered 13% more pixels for nothing. the
+     100px top offset must match BLEED_TOP in bg-shader.js */
+  @media (max-width: 760px) and (pointer: coarse) {
+    #bg-canvas {
+      top: -100px;
+      height: calc(100vh + 260px);
+      height: calc(100lvh + 260px);
+    }
   }
 
   html body.has-bg-canvas {

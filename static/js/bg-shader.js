@@ -79,8 +79,9 @@
     'float fbm(vec2 p) {',
     '  float v = 0.0;',
     '  float a = 0.5;',
-    '  // fewer octaves keeps the field smooth and blobby instead of wispy',
-    '  for (int i = 0; i < 3; i++) {',
+    '  // 2 octaves: this only feeds warp offsets, where the finest octave',
+    '  // is invisible; also keeps the field smooth and blobby',
+    '  for (int i = 0; i < 2; i++) {',
     '    v += a * snoise(p);',
     '    p = p * 2.03 + vec2(13.7, 7.1);',
     '    a *= 0.5;',
@@ -99,6 +100,9 @@
     '  }',
     '  return v;',
     '}',
+    '',
+    '// pow(x, 5.0) is a log2/exp2 pair on gpus; multiplies are cheaper',
+    'float pow5(float x) { float x2 = x * x; return x2 * x2 * x; }',
     '',
     'void main() {',
     '  vec2 uv = gl_FragCoord.xy / u_res;',
@@ -146,7 +150,7 @@
     '                fbm(p + 2.2 * q + vec2(8.3, 2.8) - t * 0.12));',
     '  float f = 0.5 + 0.5 * fbm5(p * 1.0 + 2.2 * r);',
     '  // gentle contrast keyed on warp strength; kept low to stay blobby',
-    '  f = mix(f, pow(f, 3.0), 0.3 * abs(r.x));',
+    '  f = mix(f, f * f * f, 0.3 * abs(r.x));',
     '',
     '  // competitive per-color weights: each hue keys on its own field',
     '  // component and pow() lets one color dominate per region, so pools',
@@ -155,11 +159,11 @@
     '  // rose/sage/tan pools pass the chroma gate instead of dimming as',
     '  // half-mud blends. blue keeps a small bias against the 3 warm hues,',
     '  // reduced since sharper competition amplifies it',
-    '  float w1 = 1.6 * pow(0.5 + 0.5 * r.x, 5.0);',
-    '  float w2 = pow(0.5 - 0.5 * r.x, 5.0);',
-    '  float w3 = pow(0.5 + 0.5 * q.x, 5.0);',
-    '  float w4 = pow(0.5 + 0.5 * r.y, 5.0);',
-    '  float w5 = pow(0.5 + 0.5 * q.y, 5.0);',
+    '  float w1 = 1.6 * pow5(0.5 + 0.5 * r.x);',
+    '  float w2 = pow5(0.5 - 0.5 * r.x);',
+    '  float w3 = pow5(0.5 + 0.5 * q.x);',
+    '  float w4 = pow5(0.5 + 0.5 * r.y);',
+    '  float w5 = pow5(0.5 + 0.5 * q.y);',
     '  vec3 accent = (u_c1 * w1 + u_c2 * w2 + u_c3 * w3 + u_c4 * w4 + u_c5 * w5)',
     '              / max(w1 + w2 + w3 + w4 + w5, 1e-4);',
     '',
@@ -303,11 +307,10 @@
     var canvas = document.createElement('canvas');
     canvas.id = 'bg-canvas';
     canvas.setAttribute('aria-hidden', 'true');
-    // low-power keeps dual-gpu macs on the integrated gpu; this workload
-    // never needs the discrete one
+    // alpha true is faster in safari (rgb8 buffers need blend patching);
+    // the shader writes alpha 1.0 so the canvas stays opaque either way
     var gl = canvas.getContext('webgl', {
-      antialias: false, alpha: false, depth: false, stencil: false,
-      powerPreference: 'low-power',
+      antialias: false, alpha: true, depth: false, stencil: false,
     });
     if (!gl) return;
 
@@ -491,41 +494,30 @@
       }
     }
 
-    // render at a fraction of device resolution; the field is soft so nobody can tell
+    // render at a fraction of device resolution, with an absolute pixel cap:
+    // a ratio alone let 6k displays reach ~3.8MP per frame
     var RENDER_SCALE = 0.4;
+    var MAX_PIXELS = 1200000;
     function resize() {
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var w = Math.max(1, Math.round(canvas.clientWidth * dpr * RENDER_SCALE));
-      var h = Math.max(1, Math.round(canvas.clientHeight * dpr * RENDER_SCALE));
+      var w = canvas.clientWidth * dpr * RENDER_SCALE;
+      var h = canvas.clientHeight * dpr * RENDER_SCALE;
+      var over = (w * h) / MAX_PIXELS;
+      if (over > 1) {
+        var s = Math.sqrt(over);
+        w /= s;
+        h /= s;
+      }
+      w = Math.max(1, Math.round(w));
+      h = Math.max(1, Math.round(h));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
         gl.viewport(0, 0, w, h);
-        tintRow = new Uint8Array(w * 4);
         needsRender = true;
       }
     }
 
-    // desktop safari tints its toolbar from the background-color of fixed
-    // elements at the viewport edge (it never composites real page pixels
-    // there, unlike ios). feeding it the shader's averaged top-row color
-    // makes the toolbar tint drift with the shader. never do this on ios:
-    // a background-color on the fixed canvas would override the real
-    // pixel compositing behind the bars
-    var tintRow = null;
-    var tintFrame = 0;
-    var desktopTint = !window.matchMedia('(pointer: coarse)').matches;
-    function sampleToolbarTint() {
-      if (!desktopTint || !tintRow || ++tintFrame % 150 !== 0) return;
-      // gl origin is bottom-left, so the top row is at height - 1
-      gl.readPixels(0, canvas.height - 1, canvas.width, 1, gl.RGBA, gl.UNSIGNED_BYTE, tintRow);
-      var r = 0, g = 0, b = 0, n = 0;
-      for (var i = 0; i < canvas.width; i += 8) {
-        r += tintRow[i * 4]; g += tintRow[i * 4 + 1]; b += tintRow[i * 4 + 2]; n++;
-      }
-      canvas.style.backgroundColor =
-        'rgb(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ')';
-    }
 
     function targetPalette() {
       return document.body.classList.contains('dark') ? PALETTES.dark : PALETTES.light;
@@ -556,9 +548,9 @@
     // and decays, so fast strokes stir harder than a resting hover
     var pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, s: 0, kick: 0, active: false };
     // client coords must map through the canvas geometry, not the window:
-    // the canvas bleeds 100px above the viewport (top: -100px in css) and
-    // 160px below, so window-relative mapping drifts low toward the bottom
-    var BLEED_TOP = 100;
+    // on mobile the canvas bleeds 100px above the viewport (top: -100px in
+    // _custom_css.html) and 160px below; desktop has no bleed
+    var BLEED_TOP = window.matchMedia('(max-width: 760px) and (pointer: coarse)').matches ? 100 : 0;
     function toUvX(clientX) { return clientX / canvas.clientWidth; }
     function toUvY(clientY) { return 1 - (clientY + BLEED_TOP) / canvas.clientHeight; }
     window.addEventListener('pointermove', function (e) {
@@ -663,7 +655,8 @@
       var interacting = pointer.s > 0.02 || drops.length > 0 ||
         now < inkUntil || !paletteSettled;
       if (now - last < (interacting ? 31 : 64)) return;
-      resize();
+      // resize is event-driven: reading clientWidth here forced a layout
+      // flush on every frame
 
       var dt = Math.min((now - last) / 1000, 0.1);
       last = now;
@@ -774,7 +767,6 @@
       }
       gl.uniform4fv(u.drops, dropData);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      sampleToolbarTint();
     }
 
     // fully stop the loop when the tab is hidden or the window loses focus:
@@ -796,6 +788,7 @@
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopLoop(); else startLoop();
     });
+    resize();
     // desktop only: mobile fires blur for in-page reasons (keyboards, etc)
     if (window.matchMedia('(pointer: fine)').matches) {
       window.addEventListener('blur', stopLoop);
