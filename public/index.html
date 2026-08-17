@@ -170,6 +170,13 @@
   }
 
   body.homepage #links #left a,
+  body .layout-list .read-more a,
+  body .layout-list a.post {
+    /* ios paints its own grey-white overlay on tap otherwise */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body.homepage #links #left a,
   body .layout-list .read-more a {
     padding: 0.3em 0.95em;
     line-height: 1.5;
