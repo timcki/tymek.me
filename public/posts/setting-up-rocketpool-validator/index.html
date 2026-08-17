@@ -4,7 +4,9 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- viewport-fit=cover lets the page (and the shader canvas) extend into the
+       safe areas behind ios safari's status bar and toolbar -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   
     
@@ -36,7 +38,10 @@
   <link rel="icon" type="image/png" sizes="32x32" href="https://tymek.me/img/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="https://tymek.me/img/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://tymek.me/img/apple-touch-icon.png">
-  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
   <style>
 
   /* light mode colors */
@@ -44,11 +49,11 @@
     --primary-color: #5871a2;
     --primary-pale-color: #5871a233;
     --primary-decoration-color: #5871a210;
-    --bg-color: #ffffff;
-    --text-color: #2f3030;
-    --text-pale-color: #767676;
-    --text-decoration-color: #a9a9a9;
-    --highlight-mark-color: #5f75b020;
+    --bg-color: #faf9f7;
+    --text-color: #26242e;
+    --text-pale-color: #6f6b7a;
+    --text-decoration-color: #a5a1af;
+    --highlight-mark-color: #5871a220;
 
     --callout-note-color: #5871a2;
     --callout-tip-color: #268556;
@@ -62,10 +67,10 @@
     --primary-color: #6f8fd1;
     --primary-pale-color: #6f8fd166;
     --primary-decoration-color: #6f8fd112;
-    --bg-color: #1c1c1c;
-    --text-color: #c1c1c1;
-    --text-pale-color: #848484;
-    --text-decoration-color: #5f5f5f;
+    --bg-color: #16161e;
+    --text-color: #c9c7d4;
+    --text-pale-color: #8a8798;
+    --text-decoration-color: #5c5966;
     --highlight-mark-color: #8296cb3b;
 
     --callout-note-color: #6f8fd1;
@@ -77,22 +82,70 @@
 
   /* typography */
   body {
-    --main-font: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --main-font: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --code-font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     --homepage-max-width: 768px;
     --main-max-width: 768px;
     --avatar-size: 60px;
     --font-size: 16px;
     --line-height: 1.75;
-    --img-border-radius: 0px;
-    --detail-border-radius: 0px;
+    --img-border-radius: 4px;
+    --detail-border-radius: 4px;
     --dark-mode-img-brightness: 0.75;
     --dark-mode-chart-brightness: 0.75;
-    --inline-code-border-radius: 2px;
+    --inline-code-border-radius: 3px;
     --inline-code-bg-color: var(--primary-decoration-color);
-    --block-code-border-radius: 0px;
+    --block-code-border-radius: 4px;
     --block-code-border-color: var(--primary-color);
     --detail-border-color: var(--primary-color);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', var(--main-font);
+    letter-spacing: -0.02em;
+  }
+
+  /* shader background: canvas sits behind everything, body goes transparent
+     only when the canvas is actually running (bg-shader.js adds the class) */
+  #bg-canvas {
+    position: fixed;
+    /* bleed past the viewport so ios safari composites real shader pixels
+       behind its liquid glass chrome instead of a flat fallback tint */
+    top: -100px;
+    left: 0;
+    width: 100vw;
+    height: calc(100vh + 260px);
+    width: 100lvw;
+    height: calc(100lvh + 260px);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  html body.has-bg-canvas {
+    background-color: transparent;
+  }
+
+  /* scroll runway: ios safari only composites page pixels behind its liquid
+     glass chrome when scrollY > 0, so short pages get 160px of fake scroll
+     height and are pre-scrolled past it by bg-shader.js (value must match
+     RUNWAY there) */
+  body.has-runway {
+    padding-top: 160px;
+    /* bottom padding keeps document content below the viewport, otherwise
+       safari's bottom bar sits at the page end and falls back to a flat tint */
+    padding-bottom: 160px;
+    /* lvh, not dvh: dvh changes as the toolbar collapses mid-scroll, which
+       would make the document height (and our scroll bounds) flutter */
+    min-height: calc(100lvh + 320px);
+  }
+
+  /* no bounce past the absolute document edges on mobile: parking at exact
+     scrollY 0/max flips safari's chrome to a flat tint. the runway settle
+     in bg-shader.js provides the rubber-band feel instead */
+  @media (max-width: 760px) and (pointer: coarse) {
+    html {
+      overscroll-behavior-y: none;
+    }
   }
 
 </style>
@@ -104,7 +157,8 @@
 
 
 
-  
+  <script defer src="https://tymek.me/js/bg-shader.js"></script>
+
 </head>
 
 <body class="post">

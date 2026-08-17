@@ -1,23 +1,4 @@
-<!DOCTYPE html>
-
-<html lang="en">
-
-<head>
-  <meta charset="utf-8">
-  <!-- viewport-fit=cover lets the page (and the shader canvas) extend into the
-       safe areas behind ios safari's status bar and toolbar -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
-  
-  <title>404</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="https://tymek.me/img/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="https://tymek.me/img/favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://tymek.me/img/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-
-  <style>
+<style>
 
   /* light mode colors */
   body {
@@ -124,35 +105,3 @@
   }
 
 </style>
-
-  <link rel="stylesheet" href="https://tymek.me/main.css">
-  
-  <script defer src="https://tymek.me/js/bg-shader.js"></script>
-
-</head>
-
-<body class="not-found">
-  
-  <script>
-    const theme = sessionStorage.getItem('theme');
-    const match = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if ((theme && theme == 'dark') || (!theme && match)) {
-      document.body.classList.add('dark');
-      const hl = document.querySelector('link#hl');
-      if (hl) hl.href = 'https://tymek.me/giallo-dark.css';
-    }
-  </script>
-  
-  
-<div class="wrapper">
-  <p class="error">
-    404 Not Found
-  </p>
-  <a class="instant" href="https://tymek.me">« back to home »</a>
-</div>
-
-  
-  <script src="https://tymek.me/js/main.js"></script>
-</body>
-
-</html>
