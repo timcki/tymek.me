@@ -303,7 +303,12 @@
     var canvas = document.createElement('canvas');
     canvas.id = 'bg-canvas';
     canvas.setAttribute('aria-hidden', 'true');
-    var gl = canvas.getContext('webgl', { antialias: false, alpha: false, depth: false, stencil: false });
+    // low-power keeps dual-gpu macs on the integrated gpu; this workload
+    // never needs the discrete one
+    var gl = canvas.getContext('webgl', {
+      antialias: false, alpha: false, depth: false, stencil: false,
+      powerPreference: 'low-power',
+    });
     if (!gl) return;
 
     // derivatives power the sheen lighting; degrade gracefully without them
@@ -511,7 +516,7 @@
     var tintFrame = 0;
     var desktopTint = !window.matchMedia('(pointer: coarse)').matches;
     function sampleToolbarTint() {
-      if (!desktopTint || !tintRow || ++tintFrame % 60 !== 0) return;
+      if (!desktopTint || !tintRow || ++tintFrame % 150 !== 0) return;
       // gl origin is bottom-left, so the top row is at height - 1
       gl.readPixels(0, canvas.height - 1, canvas.width, 1, gl.RGBA, gl.UNSIGNED_BYTE, tintRow);
       var r = 0, g = 0, b = 0, n = 0;
@@ -568,6 +573,8 @@
 
     // ink drops: a tap or click splashes a spreading, dissolving drop
     var DROP_LIFE = 3500;
+    // sim pass only runs while stains can still be alive (see frame loop)
+    var inkUntil = 0;
     var drops = [];
     var dropData = new Float32Array(32);
     var dropHue = 0;
@@ -592,7 +599,10 @@
       // stain color cycles through the current palette, one hue per tap
       var cols = [cur.c1, cur.c2, cur.c3, cur.c4, cur.c5];
       var c = cols[dropHue++ % 5];
-      if (pendingSplats.length < 8) pendingSplats.push({ x: ux, y: uy, color: [c[0], c[1], c[2]] });
+      if (pendingSplats.length < 8) {
+        pendingSplats.push({ x: ux, y: uy, color: [c[0], c[1], c[2]], t0: performance.now() });
+      }
+      inkUntil = performance.now() + 15000;
     }, { passive: true });
 
     // device tilt: pans the field and drains the ink downhill. needs a secure
@@ -643,12 +653,16 @@
       })));
     });
     var last = performance.now();
+    var paletteSettled = true;
     function frame(now) {
-      requestAnimationFrame(frame);
+      rafId = requestAnimationFrame(frame);
       if (document.hidden) return;
-      // cap at ~30fps: the field drifts slowly, and every canvas frame makes
-      // safari re-blur the backdrop of each glass element above it
-      if (now - last < 31) return;
+      // adaptive cadence: ~30fps while anything is interacting, ~15fps for
+      // the ambient drift. every canvas frame makes safari re-blur the
+      // backdrop of each glass element above it, so frames are the currency
+      var interacting = pointer.s > 0.02 || drops.length > 0 ||
+        now < inkUntil || !paletteSettled;
+      if (now - last < (interacting ? 31 : 64)) return;
       resize();
 
       var dt = Math.min((now - last) / 1000, 0.1);
@@ -665,6 +679,7 @@
       settled = ease(cur.c5, tgt.c5, k) && settled;
       cur.intensity += (tgt.intensity - cur.intensity) * k;
       if (!settled) needsRender = true;
+      paletteSettled = settled;
 
       // trailing pointer ease; interaction is motion, so it stays off under reduced motion
       var pk = Math.min(1, dt * 5);
@@ -686,8 +701,10 @@
 
       var t = reducedMotion.matches ? 0 : (now - start) / 1000;
 
-      // ink sim pass: advect and decay the stain layer, splat new taps
-      if (simProg) {
+      // ink sim pass: advect and decay the stain layer, splat new taps.
+      // skipped entirely once the last stain has fully decayed; the final
+      // written texture stays bound and holds zeros
+      if (simProg && (pendingSplats.length > 0 || now < inkUntil)) {
         gl.useProgram(simProg);
         gl.bindFramebuffer(gl.FRAMEBUFFER, inkFbo[1 - inkRead]);
         gl.viewport(0, 0, SIM_RES, SIM_RES);
@@ -702,17 +719,23 @@
         gl.uniform2f(simU.grav, tilt.x, -tilt.y);
         splatData.fill(0);
         splatColData.fill(0);
-        for (var si = 0; si < pendingSplats.length; si++) {
+        // deposit each stain over ~350ms instead of one frame, so the dot
+        // soaks in gradually while the diffusion already spreads it
+        var SPLAT_MS = 350;
+        for (var si = 0; si < pendingSplats.length && si < 8; si++) {
           var sp = pendingSplats[si];
+          if (now - sp.t0 > SPLAT_MS) continue;
           splatData[si * 4] = sp.x;
           splatData[si * 4 + 1] = sp.y;
           splatData[si * 4 + 2] = 0.07;
-          splatData[si * 4 + 3] = 0.35;
+          splatData[si * 4 + 3] = 0.35 * (dt * 1000) / SPLAT_MS;
           splatColData[si * 3] = sp.color[0];
           splatColData[si * 3 + 1] = sp.color[1];
           splatColData[si * 3 + 2] = sp.color[2];
         }
-        pendingSplats.length = 0;
+        for (var sj = pendingSplats.length - 1; sj >= 0; sj--) {
+          if (now - pendingSplats[sj].t0 > SPLAT_MS) pendingSplats.splice(sj, 1);
+        }
         gl.uniform4fv(simU.splat, splatData);
         gl.uniform3fv(simU.splatcol, splatColData);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -741,16 +764,44 @@
       dropData.fill(0);
       for (var dj = 0; dj < drops.length; dj++) {
         var age = (now - drops[dj].t0) / DROP_LIFE;
+        // ease-in attack over ~250ms: full strength on frame one made the
+        // ring and its field warp snap on abruptly
+        var a = Math.min(1, age / 0.07);
         dropData[dj * 4] = drops[dj].x;
         dropData[dj * 4 + 1] = drops[dj].y;
         dropData[dj * 4 + 2] = age;
-        dropData[dj * 4 + 3] = Math.pow(1 - age, 1.6);
+        dropData[dj * 4 + 3] = Math.pow(1 - age, 1.6) * a * a * (3 - 2 * a);
       }
       gl.uniform4fv(u.drops, dropData);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       sampleToolbarTint();
     }
-    requestAnimationFrame(frame);
+
+    // fully stop the loop when the tab is hidden or the window loses focus:
+    // a visible-but-unfocused window would otherwise render (and force glass
+    // re-blurs) indefinitely
+    var rafId = 0;
+    var running = false;
+    function startLoop() {
+      if (running) return;
+      running = true;
+      last = performance.now();
+      rafId = requestAnimationFrame(frame);
+    }
+    function stopLoop() {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(rafId);
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stopLoop(); else startLoop();
+    });
+    // desktop only: mobile fires blur for in-page reasons (keyboards, etc)
+    if (window.matchMedia('(pointer: fine)').matches) {
+      window.addEventListener('blur', stopLoop);
+      window.addEventListener('focus', startLoop);
+    }
+    startLoop();
   }
 
   if (document.readyState === 'loading') {
