@@ -1,5 +1,21 @@
 [[collection]]
 type = "card"
+title = "plump"
+link = "https://tangled.org/tymek.me/plump"
+content = "Bare-metal e-reader firmware for the XTEink X4 in Rust: no_std, async via Embassy, no framebuffer. EPUB reader with Knuth-Plass paragraph justification, images dithered to 1-bit, drag-and-drop book upload over WiFi/mDNS, and ~400ms partial e-paper page turns."
+tags = ["rust", "embedded", "e-ink"]
+featured = true
+
+[[collection]]
+type = "card"
+title = "Wieczorki filmowe"
+link = "https://tangled.org/tymek.me/film_night"
+content = "Private weekly film-voting site for friends, live at film.tymek.me. One nomination and three expiring voting points per person each week, scores that fade over time, and a Thursday room vote over the top three. Showing up earns XP and film-buff ranks. SvelteKit 2 + Svelte 5 runes + SQLite."
+tags = ["typescript", "svelte", "sqlite"]
+featured = false
+
+[[collection]]
+type = "card"
 title = "CryptoNote v2 Ring Signature Implementation"
 link = "https://github.com/timcki/learncoin"
 content = "From-scratch implementation of the CryptoNote v2 ring-signature transaction scheme (basis of Monero) as bachelor thesis project, including stealth addresses, ring signatures, and key image generation for double-spend prevention."

@@ -330,6 +330,49 @@
     box-shadow: 0 8px 22px var(--glass-shadow);
     transform: translateY(-2px);
   }
+  /* work experience entries become stacked glass cards instead of the
+     theme's inline underlined links */
+  body .prose .collection.entry {
+    display: flex;
+    width: auto;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    border-radius: 14px;
+    padding: 0.8em 1.1em;
+    margin: 0.7em 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  /* the theme colors the entry's border on hover, so out-rank it to keep
+     the uniform glass hairline in every state */
+  html body .prose .collection.entry,
+  html body .prose a.collection.entry:hover {
+    border: 1px solid var(--glass-border);
+  }
+  body .prose a.collection.entry:hover {
+    background: var(--glass-bg-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px var(--glass-shadow);
+  }
+  body .prose a.collection.entry:active {
+    background: var(--glass-bg-hover);
+    transform: scale(0.99);
+    box-shadow: none;
+  }
+
+  /* featured cards: the theme's margin asterisk clashes with the glass, so
+     swap it for a primary-tinted hairline and a faint glow */
+  body .prose .collection.card.featured::before {
+    content: none;
+  }
+  body .prose .collection.card.featured {
+    border-color: var(--primary-pale-color);
+    box-shadow: 0 0 20px var(--primary-decoration-color);
+  }
+  body .prose .collection.card.featured:hover {
+    box-shadow: 0 8px 22px var(--glass-shadow), 0 0 20px var(--primary-pale-color);
+  }
+
   /* stretched link: the title's overlay makes the whole card clickable */
   body .prose .collection.card .meta a.title::after {
     content: '';
@@ -449,6 +492,62 @@
         
 
 <section class="collection-wrapper">
+
+  
+    
+<blockquote class="collection card featured">
+  <div class="meta">
+    
+    
+    <a class="title" href="https:&#x2F;&#x2F;tangled.org&#x2F;tymek.me&#x2F;plump" target="_blank" rel="noreferrer noopener">plump</a>
+    
+    
+  </div>
+  
+  <div class="content"><p>Bare-metal e-reader firmware for the XTEink X4 in Rust: no_std, async via Embassy, no framebuffer. EPUB reader with Knuth-Plass paragraph justification, images dithered to 1-bit, drag-and-drop book upload over WiFi/mDNS, and ~400ms partial e-paper page turns.</p>
+</div>
+  
+  <div class="tags">
+    
+    <div><span>#</span>rust</div>
+    
+    <div><span>#</span>embedded</div>
+    
+    <div><span>#</span>e-ink</div>
+    
+  </div>
+  
+</blockquote>
+
+  
+
+  
+    
+<blockquote class="collection card">
+  <div class="meta">
+    
+    
+    <a class="title" href="https:&#x2F;&#x2F;tangled.org&#x2F;tymek.me&#x2F;film_night" target="_blank" rel="noreferrer noopener">Wieczorki filmowe</a>
+    
+    
+  </div>
+  
+  <div class="content"><p>Private weekly film-voting site for friends, live at film.tymek.me. One nomination and three expiring voting points per person each week, scores that fade over time, and a Thursday room vote over the top three. Showing up earns XP and film-buff ranks. SvelteKit 2 + Svelte 5 runes + SQLite.</p>
+</div>
+  
+  <div class="tags">
+    
+    <div><span>#</span>typescript</div>
+    
+    <div><span>#</span>svelte</div>
+    
+    <div><span>#</span>sqlite</div>
+    
+  </div>
+  
+</blockquote>
+
+  
 
   
     
