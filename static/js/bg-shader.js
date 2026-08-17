@@ -304,6 +304,11 @@
   }
 
   function init() {
+    // perf triage switches: ?bg=off (no canvas at all), ?bg=static (render
+    // one frame then freeze), ?bg=debug (normal, log fps and renderer)
+    var bgMode = new URLSearchParams(location.search).get('bg');
+    if (bgMode === 'off') return;
+
     var canvas = document.createElement('canvas');
     canvas.id = 'bg-canvas';
     canvas.setAttribute('aria-hidden', 'true');
@@ -646,15 +651,30 @@
     });
     var last = performance.now();
     var paletteSettled = true;
+    // measure the display's vsync interval from early raf deltas so high
+    // refresh screens get matching tiers (120hz -> 120/60, 60hz -> 60/30)
+    var vsyncMs = 16.7;
+    var vsyncSamples = [];
+    var lastRaf = 0;
     function frame(now) {
       rafId = requestAnimationFrame(frame);
       if (document.hidden) return;
-      // adaptive cadence: ~30fps while anything is interacting, ~15fps for
-      // the ambient drift. every canvas frame makes safari re-blur the
-      // backdrop of each glass element above it, so frames are the currency
+      if (lastRaf && vsyncSamples.length < 30) {
+        var d = now - lastRaf;
+        // filter out pauses and jank; keep plausible vsync deltas only
+        if (d > 3 && d < 45) vsyncSamples.push(d);
+        if (vsyncSamples.length === 30) {
+          vsyncSamples.sort(function (a, b) { return a - b; });
+          vsyncMs = vsyncSamples[15];
+        }
+      }
+      lastRaf = now;
+      // adaptive cadence: full refresh rate while anything is interacting,
+      // half rate for the ambient drift. every canvas frame makes safari
+      // re-blur each glass backdrop above it, so frames are the currency
       var interacting = pointer.s > 0.02 || drops.length > 0 ||
         now < inkUntil || !paletteSettled;
-      if (now - last < (interacting ? 31 : 64)) return;
+      if (now - last < (interacting ? vsyncMs - 2 : vsyncMs * 2 - 2)) return;
       // resize is event-driven: reading clientWidth here forced a layout
       // flush on every frame
 
@@ -767,6 +787,23 @@
       }
       gl.uniform4fv(u.drops, dropData);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (bgMode === 'debug') {
+        drawCount++;
+        if (now - fpsWindowStart > 2000) {
+          console.log('[bg-shader] fps', (drawCount / ((now - fpsWindowStart) / 1000)).toFixed(1),
+            '| buffer', canvas.width + 'x' + canvas.height);
+          drawCount = 0;
+          fpsWindowStart = now;
+        }
+      }
+    }
+    var drawCount = 0;
+    var fpsWindowStart = performance.now();
+    if (bgMode === 'debug') {
+      var dbgExt = gl.getExtension('WEBGL_debug_renderer_info');
+      console.log('[bg-shader] renderer:',
+        gl.getParameter(dbgExt ? dbgExt.UNMASKED_RENDERER_WEBGL : gl.RENDERER),
+        '| buffer:', canvas.width + 'x' + canvas.height);
     }
 
     // fully stop the loop when the tab is hidden or the window loses focus:
@@ -795,6 +832,8 @@
       window.addEventListener('focus', startLoop);
     }
     startLoop();
+    // static mode: a few frames to settle, then freeze the canvas entirely
+    if (bgMode === 'static') setTimeout(stopLoop, 500);
   }
 
   if (document.readyState === 'loading') {
