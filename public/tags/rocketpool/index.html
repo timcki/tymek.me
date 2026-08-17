@@ -97,6 +97,29 @@ en">
     letter-spacing: -0.02em;
   }
 
+  /* back arrow, relocated into the page title by ui.js. the prose-scoped
+     selector out-ranks the theme's .prose a underline styling, which the
+     about page title inherits (its heading lives inside article.prose) */
+  body .back-arrow,
+  body .prose .back-arrow {
+    text-decoration: none;
+    border-bottom: none;
+    color: var(--text-pale-color);
+    margin-right: 0.45em;
+    display: inline-block;
+    position: relative;
+    top: 0.04em;
+    font-size: 0.85em;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  body .back-arrow:hover,
+  body .prose .back-arrow:hover {
+    color: var(--primary-color);
+    transform: translateX(-3px);
+    text-decoration: none;
+    border-bottom: none;
+  }
+
   /* shader background: canvas sits behind everything, body goes transparent
      only when the canvas is actually running (bg-shader.js adds the class) */
   #bg-canvas {
@@ -289,6 +312,42 @@ en">
     box-shadow: none;
   }
 
+  /* project collection cards get the same glass treatment; no press state
+     since the card itself is not a link */
+  body .prose .collection.card {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 1em 1.2em;
+    margin: 1.5em 0;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  body .prose .collection.card:hover {
+    background: var(--glass-bg-hover);
+    box-shadow: 0 8px 22px var(--glass-shadow);
+    transform: translateY(-2px);
+  }
+  /* stretched link: the title's overlay makes the whole card clickable */
+  body .prose .collection.card .meta a.title::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+  }
+  /* links inside the description stay clickable above the overlay */
+  body .prose .collection.card .content a {
+    position: relative;
+    z-index: 1;
+  }
+  body .prose .collection.card:active {
+    background: var(--glass-bg-hover);
+    transform: scale(0.99);
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* no bounce past the absolute document edges on mobile: parking at exact
      scrollY 0/max flips safari's chrome to a flat tint. the runway settle
      in bg-shader.js provides the rubber-band feel instead */
@@ -303,6 +362,7 @@ en">
   <link rel="stylesheet" href="https://tymek.me/main.css">
   
   <script defer src="https://tymek.me/js/bg-shader.js"></script>
+<script defer src="https://tymek.me/js/ui.js"></script>
 
 </head>
 
