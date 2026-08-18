@@ -1,2 +1,8 @@
 <script defer src="{{ get_url(path='js/bg-shader.js') }}"></script>
 <script defer src="{{ get_url(path='js/ui.js') }}"></script>
+{%- if config.extra.analytics_endpoint %}
+{# goatcounter, self-hosted and proxied first-party; the script itself is
+   served at <endpoint>.js. it skips localhost, so zola serve isn't counted #}
+<script data-goatcounter="{{ config.extra.analytics_endpoint | safe }}" async
+  src="{{ config.extra.analytics_endpoint | safe }}.js"></script>
+{%- endif %}
